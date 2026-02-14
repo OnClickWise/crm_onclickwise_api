@@ -1,0 +1,104 @@
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+
+// Importação dos Use Cases (Devem ser criados na pasta use-cases/leads)
+import { CreateLeadUseCase } from '@/use-cases/leads/createLead.Usecase';
+import { SearchLeadUseCase } from '@/use-cases/leads/searchLead.useCase';
+import { ListLeadsUseCase } from '@/use-cases/leads/listLeads.useCase';
+import { UpdateLeadUseCase } from '@/use-cases/leads/updateLead.useCase';
+import { DeleteLeadUseCase } from '@/use-cases/leads/deleteLead.useCase';
+import { GetLeadsByStatusUseCase } from '@/use-cases/leads/getLeadsbyStatus.useCase';
+import { BulkPipelineUseCase } from '@/use-cases/leads/BulkPipelineUseCase';
+import { UploadAttachmentUseCase } from '@/use-cases/leads/uploadAttachment.useCase';
+import { GetLeadByIdUseCase } from '@/use-cases/leads/getLeadByIuseCase';
+
+
+@Controller('leads')
+export class LeadsController {
+  constructor(
+    private searchLead: SearchLeadUseCase,
+    private listLeads: ListLeadsUseCase,
+    private createLead: CreateLeadUseCase,
+    private updateLead: UpdateLeadUseCase,
+    private deleteLead: DeleteLeadUseCase,
+    private getByStatus: GetLeadsByStatusUseCase,
+    private bulkPipeline: BulkPipelineUseCase,
+    private uploadAttach: UploadAttachmentUseCase,
+    //private downloadAttach: DownloadAttachmentUseCase,
+    private getById: GetLeadByIdUseCase,
+  ) {}
+
+  // --- ROTAS PÚBLICAS ---
+
+  @Post('public')
+  createPublic(@Body() body: any) {
+    // Implementa a criação via formulário externo
+    return this.createLead.execute({ ...body, origin: 'public' });
+  }
+
+  // --- ROTAS PROTEGIDAS ---
+
+
+  @Get('search/:criteria')
+  searchByCriteria(@Param('criteria') criteria: string) {
+    return this.searchLead.execute({ criteria });
+  }
+
+
+  @Get('search')
+  searchGeneric(@Query() query: any) {
+    return this.searchLead.execute(query);
+  }
+
+
+  @Get()
+  list(@Query() params: any) {
+    return this.listLeads.execute(params);
+  }
+
+  @Post()
+  createInternal(@Body() body: any) {
+    return this.createLead.execute(body);
+  }
+
+  @Put()
+  update(@Body() body: any) {
+    // Nota: A tabela indica PUT /leads sem ID na URL, sugerindo ID no body
+    return this.updateLead.execute(body.id, body);
+  }
+
+
+  @Delete()
+  remove(@Query('id') id: string) {
+    return this.deleteLead.execute(id);
+  }
+
+
+  @Get('status')
+  listByStatus(@Query('status') status: string) {
+    return this.getByStatus.execute(status);
+  }
+
+  @Post('bulk-pipeline')
+  bulkUpdate(@Body() body: any) {
+    return this.bulkPipeline.execute(body);
+  }
+
+  @Post(':id/attachments')
+  upload(@Param('id') id: string, @Body() file: any) {
+    return this.uploadAttach.execute(id, file);
+  }
+
+
+
+/*
+  @Get(':id/attachments/:fId')
+  download(@Param('id') id: string, @Param('fId') fId: string) {
+    return this.downloadAttach.execute(id, fId);
+  }
+*/
+
+  @Get(':id')
+  findById(@Param('id') id: string) {
+    return this.getById.execute(id);
+  }
+}
