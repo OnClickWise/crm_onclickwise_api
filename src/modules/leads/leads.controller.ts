@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
 
 // Importação dos Use Cases (Devem ser criados na pasta use-cases/leads)
-import { CreateLeadUseCase } from '@/use-cases/leads/createLead.Usecase';
+import { CreateLeadUseCase } from '@/use-cases/leads/createLead.useCase';
 import { SearchLeadUseCase } from '@/use-cases/leads/searchLead.useCase';
 import { ListLeadsUseCase } from '@/use-cases/leads/listLeads.useCase';
 import { UpdateLeadUseCase } from '@/use-cases/leads/updateLead.useCase';

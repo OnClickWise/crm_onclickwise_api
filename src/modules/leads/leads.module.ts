@@ -4,7 +4,7 @@ import { Module } from '@nestjs/common';
 import { LeadsController } from './leads.controller';
 
 // Use Cases
-import { CreateLeadUseCase } from '@/use-cases/leads/createLead.Usecase';
+import { CreateLeadUseCase } from '@/use-cases/leads/createLead.useCase';
 import { SearchLeadUseCase } from '@/use-cases/leads/searchLead.useCase';
 import { ListLeadsUseCase } from '@/use-cases/leads/listLeads.useCase';
 import { UpdateLeadUseCase } from '@/use-cases/leads/updateLead.useCase';

@@ -11,6 +11,12 @@ export class PipelineStagesRepository {
       .where({ organization_id: organizationId, is_active: true })
       .orderBy('order', 'asc');
   }
+  
+  async findBySlug(slug: string) {
+    return this.knex('organizations')
+      .where({ slug })
+      .first();
+  }
 
   findById(id: string, organizationId: string) {
     return this.knex('pipeline_stages')

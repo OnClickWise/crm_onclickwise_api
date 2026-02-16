@@ -19,7 +19,7 @@ export class CreatePipelineUseCase {
   constructor(private repo: PipelineStagesRepository) {}
 
   async execute(orgId: string, dto: CreateStageDto) {
-    const exists = await this.repo.findBySlug(orgId, dto.slug);
+    const exists = await this.repo.findBySlug(dto.slug);
     if (exists) throw new Error('Stage already exists');
 
     return this.repo.create({

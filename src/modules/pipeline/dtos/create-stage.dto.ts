@@ -1,16 +1,16 @@
 import { IsString, IsOptional } from 'class-validator';
-import { PipelineStageType } from '../entities/pipeline-stage.entity';
+import type { PipelineStageType } from '../entities/pipeline-stage.entity';
 
 
 export class CreateStageDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsString()
-  slug: string;
+  slug!: string;
 
   @IsString()
-  color: string;
+  color!: string;
 
   @IsOptional()
   stage_type?: PipelineStageType;

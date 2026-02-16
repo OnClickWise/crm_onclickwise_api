@@ -14,7 +14,7 @@ export class PipelineController {
 
   @Post()
   create(@Body() body: any) {
-    return this.createPipeline.execute(body);
+    return this.createPipeline.execute(body,body?.orgId);
   }
 
   @Get(':organizationId')

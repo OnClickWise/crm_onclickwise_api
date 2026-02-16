@@ -1,11 +1,11 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { ILeadRepository } from '@/modules/leads/repositories/interface/lead.repository.interface';
+import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
 
 @Injectable()
 export class GetLeadByIdUseCase {
   constructor(
-    @Inject('ILeadRepository')
-    private leadRepository: ILeadRepository
+    @Inject('LeadRepository')
+    private leadRepository: LeadRepository
   ) {}
 
   async execute(id: string) {

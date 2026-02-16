@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './modules/auth/auth.module'; // ← importar
 import { DatabaseModule } from './shared/database/database.module';
 import { PipelineModule } from './modules/pipeline/pipeline.module';
+import { LeadsModule } from './modules/leads/leads.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { PipelineModule } from './modules/pipeline/pipeline.module';
 
     AuthModule, // ← registrar aqui
     PipelineModule,
+    LeadsModule,
     DatabaseModule,
   ],
   controllers: [],
