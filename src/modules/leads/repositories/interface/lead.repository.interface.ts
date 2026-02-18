@@ -15,7 +15,7 @@ export interface ILeadRepository {
   // Buscas Especializadas (SSN, EIN, Nome, Email)
   search(criteria: string | any): Promise<{ leads:LeadEntity[]; total: number }>;
   findByStatus(status: string, organizationId?: string): Promise<LeadEntity[]>;
-
+  findByEmail(email: string, organizationId?: string): Promise<LeadEntity | null>;
   // Atualização
   update(id: string, data: UpdateLeadDto): Promise<LeadEntity>;
   

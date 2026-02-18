@@ -52,6 +52,7 @@ async function bootstrap() {
     port: Number(process.env.APP_PORT) || 8080,
     host: '0.0.0.0',
   });
+  
 }
 
 bootstrap();

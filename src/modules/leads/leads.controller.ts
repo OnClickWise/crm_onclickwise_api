@@ -10,7 +10,7 @@ import { GetLeadsByStatusUseCase } from '@/use-cases/leads/getLeadsbyStatus.useC
 import { BulkPipelineUseCase } from '@/use-cases/leads/BulkPipelineUseCase';
 import { UploadAttachmentUseCase } from '@/use-cases/leads/uploadAttachment.useCase';
 import { GetLeadByIdUseCase } from '@/use-cases/leads/getLeadByIuseCase';
-
+import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
 
 @Controller('leads')
 export class LeadsController {
@@ -40,7 +40,6 @@ export class LeadsController {
 
 @Get('search/:params')
 searchByParams( @Query() allQueries: any) {
-  console.log('Valores do Filtro (Query):', allQueries);
   return this.searchLead.execute({ 
     filters: allQueries 
   });
@@ -48,7 +47,6 @@ searchByParams( @Query() allQueries: any) {
 
   @Get('search')
   searchGeneric(@Query() query: any) {
-    console.log(query)
     return this.searchLead.execute(query);
   }
 
@@ -58,21 +56,21 @@ searchByParams( @Query() allQueries: any) {
     return this.listLeads.execute(params);
   }
 
+
+  @UseGuards(JwtAuthGuard)
   @Post()
- createInternal(@Body() body: any) {
- 
-  const organizationId = 'cf3d3967-c6e4-489b-b5ce-3dd7020325dc'; //MOCK
+  createInternal(@Req() req: any) {
+    return this.createLead.execute(req.user, req.body);
+  }
 
-  return this.createLead.execute(organizationId, body);
-}
-
+  @UseGuards(JwtAuthGuard)
   @Put()
   update(@Body() body: any) {
     // Nota: A tabela indica PUT /leads sem ID na URL, sugerindo ID no body
     return this.updateLead.execute(body.id, body);
   }
 
-
+  @UseGuards(JwtAuthGuard)
   @Delete()
   remove(@Body('id') id: string) {
     return this.deleteLead.execute(id);

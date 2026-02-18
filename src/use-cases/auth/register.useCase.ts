@@ -25,7 +25,7 @@ export class RegisterUseCase {
     const existingOrg = await this.organizationRepository.findBySlug(
       data.organization.slug,
     );
-
+    console.log('oi')
     if (existingOrg) {
       throw new BadRequestException('Organização já existe');
     }

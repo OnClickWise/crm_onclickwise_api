@@ -1,4 +1,4 @@
-import {
+  import {
   CanActivate,
   ExecutionContext,
   Injectable,
@@ -15,17 +15,14 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     const authHeader = request.headers.authorization;
-
     if (!authHeader) throw new UnauthorizedException();
 
     const token = authHeader.replace('Bearer ', '');
-
     try {
       const payload = TokenService.verifyAccessToken(token) as AuthPayload;
-
       request.user = payload;
       return true;
-    } catch {
+    } catch (error){
       throw new UnauthorizedException('Token inválido');
     }
   }

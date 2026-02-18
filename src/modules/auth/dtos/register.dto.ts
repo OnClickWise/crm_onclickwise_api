@@ -10,19 +10,19 @@ import { RegisterRequest } from '../entities/auth/auth.entity';
 
 class OrganizationDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsString()
-  slug: string;
+  slug!: string;
 
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
-  company_id: string;
+  company_id!: string;
 
   @IsString()
-  password: string;
+  password!: string;
 
   @IsOptional()
   phone?: string;
@@ -45,24 +45,24 @@ class OrganizationDto {
 
 class RepresentativeDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsEmail()
-  email: string;
+  email!: string;
 
   @IsString()
-  position: string;
+  position!: string;
 
   @IsString()
-  ssn: string;
+  ssn!: string;
 }
 
 export class RegisterDto implements RegisterRequest {
   @ValidateNested()
   @Type(() => OrganizationDto)
-  organization: OrganizationDto;
+  organization!: OrganizationDto;
 
   @ValidateNested()
   @Type(() => RepresentativeDto)
-  representative: RepresentativeDto;
+  representative!: RepresentativeDto;
 }

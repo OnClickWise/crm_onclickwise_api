@@ -19,17 +19,17 @@ export class LeadEntity {
   // Comercial
   value?: number;
   description?: string;
-  estimatedCloseDate?: Date;
+  estimated_close_date?: Date;
 
   // Metadados
   createdAt: Date;
   updatedAt: Date;
 
   // O construtor garante que a entidade nasça válida ou com defaults
-  constructor(props: Partial<LeadEntity>, id?: string) {
+  constructor(props: Partial<LeadEntity>, id?: string,assignedUserId?:string) {
     this.id = id || props.id!;
     this.organizationId = props.organizationId!;
-    this.assignedUserId = props.assignedUserId || null;
+    this.assignedUserId = assignedUserId || props.assignedUserId || null;
     
     this.name = props.name!;
     this.email = props.email!;
@@ -46,7 +46,7 @@ export class LeadEntity {
     
     this.value = props.value ? Number(props.value) : undefined;
     this.description = props.description;
-    this.estimatedCloseDate = props.estimatedCloseDate ? new Date(props.estimatedCloseDate) : undefined;
+    this.estimated_close_date = props.estimated_close_date ? new Date(props.estimated_close_date) : undefined;
     
     this.createdAt = props.createdAt || new Date();
     this.updatedAt = props.updatedAt || new Date();

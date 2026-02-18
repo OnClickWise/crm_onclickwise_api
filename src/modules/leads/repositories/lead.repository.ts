@@ -87,23 +87,34 @@ export class LeadRepository implements ILeadRepository {
     return updated;
   }
 
- async search(filters: any): Promise<{ leads: LeadEntity[]; total: number }> {
+  async search(filters: any): Promise<{ leads: LeadEntity[]; total: number }> {
   const query = this.knex(this.tableName);
 
+  // 1. Lógica de Busca Global (se o usuário digitar algo no campo de busca)
   if (filters.q) {
     const searchTerm = filters.q;
     query.where((builder) => {
       builder.where('name', 'ilike', `%${searchTerm}%`)
              .orWhere('email', 'ilike', `%${searchTerm}%`);
       
+      // Só busca por SSN/EIN se o termo não tiver letras, para evitar erro de tipo no DB
       if (!/[a-zA-Z]/.test(searchTerm)) {
         builder.orWhere('ssn', searchTerm).orWhere('ein', searchTerm);
       }
     });
   }
 
+  // 2. Filtros Específicos Dinâmicos (status, organizationId, etc.)
   const { q, page, limit, ...specificFilters } = filters;
   
+  Object.entries(specificFilters).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.where(`${this.tableName}.${key}`, value);
+    }
+  });
+
+  // 3. Execução das Queries (Total e Dados)
+  // Criamos uma cópia da query para contar o total sem paginação
   const totalQuery = query.clone().count('id as count').first();
   
   // Aplicamos ordenação e paginação na query principal
@@ -124,6 +135,12 @@ export class LeadRepository implements ILeadRepository {
     return this.knex(this.tableName)
       .where({ id })
       .first();
+  }
+
+  async findByEmail(email: string,organizationId:string): Promise<LeadEntity | null> {
+    const query = this.knex(this.tableName).where({ email });
+    if (organizationId) query.andWhere({ organization_id: organizationId });
+    return query.first();
   }
 
   async findByStatus(status: string, organizationId?: string): Promise<LeadEntity[]> {
