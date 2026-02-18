@@ -7,12 +7,12 @@ export class UpdatePipelineUseCase {
   constructor(private pipelineRepository: PipelineStagesRepository) {}
 
   async execute(id: string, data: any) {
-    const pipeline = await this.pipelineRepository.findById(id);
+    const pipeline = await this.pipelineRepository.findById(id,data.orgId);
 
     if (!pipeline) {
       throw new Error('Pipeline não encontrado');
     }
 
-    return this.pipelineRepository.update(id, data);
+    return this.pipelineRepository.update(id, data.orgId,data);
   }
 }

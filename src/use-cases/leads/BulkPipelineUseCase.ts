@@ -1,6 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 
-import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
+import type { ILeadRepository } from '@/modules/leads/repositories/interface/lead.repository.interface';
 import { BulkUpdateLeadDto } from '@/modules/leads/dtos/bulk.update.lead.dto';
 
 
@@ -8,7 +8,7 @@ import { BulkUpdateLeadDto } from '@/modules/leads/dtos/bulk.update.lead.dto';
 export class BulkPipelineUseCase {
   constructor(
     @Inject('ILeadRepository')
-    private leadRepository: LeadRepository
+    private readonly leadRepository: ILeadRepository,
   ) {}
 
   async execute(data: BulkUpdateLeadDto) {

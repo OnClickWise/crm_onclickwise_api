@@ -10,10 +10,10 @@ export interface ILeadRepository {
 
   // Leitura
   findById(id: string): Promise<LeadEntity | null>;
-  findAll(filters: FilterLeadDto): Promise<{ data: LeadEntity[]; total: number }>;
+  findAll(filters: FilterLeadDto): Promise<{ leads:LeadEntity[]; total: number }>;
   
   // Buscas Especializadas (SSN, EIN, Nome, Email)
-  search(criteria: string | any): Promise<LeadEntity[]>;
+  search(criteria: string | any): Promise<{ leads:LeadEntity[]; total: number }>;
   findByStatus(status: string, organizationId?: string): Promise<LeadEntity[]>;
 
   // Atualização

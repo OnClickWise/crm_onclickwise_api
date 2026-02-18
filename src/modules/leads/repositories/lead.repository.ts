@@ -7,6 +7,15 @@ import { UpdateLeadDto } from '@/modules/leads/dtos/update.lead.dto';
 import { FilterLeadDto } from '@/modules/leads/dtos/lead.filter.dto';
 import { BulkUpdateLeadDto } from '@/modules/leads/dtos/bulk.update.lead.dto';
 
+
+function uuidv4(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
+
 @Injectable()
 export class LeadRepository implements ILeadRepository {
   constructor(@Inject('knex') private readonly knex: Knex) {}
@@ -16,7 +25,7 @@ export class LeadRepository implements ILeadRepository {
   async create(data: any): Promise<LeadEntity> {
     const [result] = await this.knex(this.tableName)
       .insert({
-        id: data.id || this.knex.raw('uuid_generate_v4()'), // Garante ID se não enviado
+        id: uuidv4(), 
         organization_id: data.organizationId,
         assigned_user_id: data.assignedUserId || null,
         name: data.name,
@@ -36,9 +45,8 @@ export class LeadRepository implements ILeadRepository {
     return result;
   }
 
-  async findAll(filters: any): Promise<{ data: LeadEntity[]; total: number }> {
+  async findAll(filters: any): Promise<{ leads:LeadEntity[]; total: number }> {
     const query = this.knex(this.tableName);
-
     if (filters.organizationId) {
       query.where('organization_id', filters.organizationId);
     }
@@ -53,9 +61,9 @@ export class LeadRepository implements ILeadRepository {
       .limit(filters.limit || 10)
       .offset(((filters.page || 1) - 1) * (filters.limit || 10))
       .orderBy('created_at', 'desc');
-
+    
     return {
-      data,
+      leads:  data,
       total: Number(totalRes?.count || 0),
     };
   }
@@ -79,16 +87,38 @@ export class LeadRepository implements ILeadRepository {
     return updated;
   }
 
-  async search(criteria: string | any): Promise<LeadEntity[]> {
-    return this.knex(this.tableName)
-      .where((builder) => {
-        builder.where('name', 'ilike', `%${criteria}%`)
-          .orWhere('email', 'ilike', `%${criteria}%`)
-          .orWhere('ssn', criteria) // Busca exata por documento
-          .orWhere('ein', criteria);
-      })
-      .orderBy('name', 'asc');
+ async search(filters: any): Promise<{ leads: LeadEntity[]; total: number }> {
+  const query = this.knex(this.tableName);
+
+  if (filters.q) {
+    const searchTerm = filters.q;
+    query.where((builder) => {
+      builder.where('name', 'ilike', `%${searchTerm}%`)
+             .orWhere('email', 'ilike', `%${searchTerm}%`);
+      
+      if (!/[a-zA-Z]/.test(searchTerm)) {
+        builder.orWhere('ssn', searchTerm).orWhere('ein', searchTerm);
+      }
+    });
   }
+
+  const { q, page, limit, ...specificFilters } = filters;
+  
+  const totalQuery = query.clone().count('id as count').first();
+  
+  // Aplicamos ordenação e paginação na query principal
+  const leads = await query
+    .orderBy('name', 'asc')
+    .limit(limit || 10)
+    .offset(((page || 1) - 1) * (limit || 10));
+
+  const totalResult = await totalQuery;
+
+  return {
+    leads,
+    total: Number(totalResult?.count || 0),
+  };
+}
 
   async findById(id: string): Promise<LeadEntity | null> {
     return this.knex(this.tableName)
@@ -114,7 +144,6 @@ export class LeadRepository implements ILeadRepository {
   }
 
   async delete(id: string): Promise<void> {
-    // Soft delete ou Hard delete conforme sua regra de negócio
     await this.knex(this.tableName).where({ id }).delete();
   }
 

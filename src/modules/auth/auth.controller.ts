@@ -13,6 +13,7 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body: LoginDto) {
+    console.log(body);
     return this.loginUseCase.execute(body);
   }
 

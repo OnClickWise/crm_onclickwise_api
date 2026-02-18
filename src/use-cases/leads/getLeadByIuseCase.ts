@@ -4,7 +4,7 @@ import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
 @Injectable()
 export class GetLeadByIdUseCase {
   constructor(
-    @Inject('LeadRepository')
+    @Inject('ILeadRepository')
     private leadRepository: LeadRepository
   ) {}
 

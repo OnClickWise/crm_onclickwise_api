@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards,Request,Req } from '@nestjs/common';
 
 // Importação dos Use Cases (Devem ser criados na pasta use-cases/leads)
 import { CreateLeadUseCase } from '@/use-cases/leads/createLead.useCase';
@@ -32,20 +32,23 @@ export class LeadsController {
   @Post('public')
   createPublic(@Body() body: any) {
     // Implementa a criação via formulário externo
-    return this.createLead.execute({ ...body, origin: 'public' });
+    return this.createLead.execute(body.data.organizationId,body);
   }
 
   // --- ROTAS PROTEGIDAS ---
 
 
-  @Get('search/:criteria')
-  searchByCriteria(@Param('criteria') criteria: string) {
-    return this.searchLead.execute({ criteria });
-  }
-
+@Get('search/:params')
+searchByParams( @Query() allQueries: any) {
+  console.log('Valores do Filtro (Query):', allQueries);
+  return this.searchLead.execute({ 
+    filters: allQueries 
+  });
+}
 
   @Get('search')
   searchGeneric(@Query() query: any) {
+    console.log(query)
     return this.searchLead.execute(query);
   }
 
@@ -56,9 +59,12 @@ export class LeadsController {
   }
 
   @Post()
-  createInternal(@Body() body: any) {
-    return this.createLead.execute(body);
-  }
+ createInternal(@Body() body: any) {
+ 
+  const organizationId = 'cf3d3967-c6e4-489b-b5ce-3dd7020325dc'; //MOCK
+
+  return this.createLead.execute(organizationId, body);
+}
 
   @Put()
   update(@Body() body: any) {
@@ -68,7 +74,7 @@ export class LeadsController {
 
 
   @Delete()
-  remove(@Query('id') id: string) {
+  remove(@Body('id') id: string) {
     return this.deleteLead.execute(id);
   }
 

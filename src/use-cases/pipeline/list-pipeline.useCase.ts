@@ -7,6 +7,6 @@ export class ListPipelinesUseCase {
   constructor(private pipelineRepository: PipelineStagesRepository) {}
 
   async execute(organizationId: string) {
-    return this.pipelineRepository.findAllByOrganization(organizationId);
+    return this.pipelineRepository.findByOrg(organizationId);
   }
 }

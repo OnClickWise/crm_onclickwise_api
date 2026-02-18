@@ -1,5 +1,5 @@
 import { IsString, IsOptional } from 'class-validator';
-import type { PipelineStageType } from '../entities/pipeline-stage.entity';
+//import type { PipelineStageType } from '../entities/pipeline-stage.entity';
 
 
 export class CreateStageDto {
@@ -12,8 +12,8 @@ export class CreateStageDto {
   @IsString()
   color!: string;
 
-  @IsOptional()
-  stage_type?: PipelineStageType;
+  //@IsOptional()
+  //stage_type?: PipelineStageType;
 
   @IsOptional()
   order?: number;

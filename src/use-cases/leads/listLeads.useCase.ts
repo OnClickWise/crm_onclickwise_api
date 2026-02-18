@@ -1,11 +1,11 @@
 import { Injectable,Inject } from '@nestjs/common';
 
-import type { LeadRepository } from '@/modules/leads/repositories/lead.repository';
+import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
 
 @Injectable()
 export class ListLeadsUseCase {
   constructor(
-     @Inject('LeadRepository')
+     @Inject('ILeadRepository')
       private leadRepository: LeadRepository
     ) {}
   

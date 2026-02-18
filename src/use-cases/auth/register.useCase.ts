@@ -30,12 +30,10 @@ export class RegisterUseCase {
         data.organization.password,
         10,
       );
-
       const organization = await this.organizationRepository.create({
-        ...data.organization,
-        password: hashedPassword,
+        ...data.organization
       });
-
+      
       const user = await this.userRepository.create({
         name: data.representative.name,
         email: data.representative.email,
@@ -51,7 +49,7 @@ export class RegisterUseCase {
       };
 
       const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '1d' });
-
+      
       return {
         success: true,
         token,

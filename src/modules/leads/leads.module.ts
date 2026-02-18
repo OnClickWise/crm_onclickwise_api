@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-
+import { DatabaseModule } from '@/shared/database/database.module'; // ajuste o path
 // Controller
 import { LeadsController } from './leads.controller';
 
@@ -19,11 +19,14 @@ import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
 
 @Module({
   imports: [
-    // DatabaseModule, // Caso o repositório precise de conexão com o banco
+    DatabaseModule
   ],
   controllers: [LeadsController],
   providers: [
-    // Registro de todos os casos de uso
+    {
+      provide: 'ILeadRepository', // O Token (String) exata que você usou no @Inject
+      useClass: LeadRepository,    // A implementação real
+    },
     CreateLeadUseCase,
     SearchLeadUseCase,
     ListLeadsUseCase,
@@ -34,10 +37,10 @@ import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
     UploadAttachmentUseCase,
     //DownloadAttachmentUseCase,
     GetLeadByIdUseCase,
-    LeadRepository
   ],
   // Exportamos os Use Cases caso precisem ser usados em outros módulos (ex: Dashboards)
   exports: [
+    'ILeadRepository'
   ]
 })
 export class LeadsModule {}

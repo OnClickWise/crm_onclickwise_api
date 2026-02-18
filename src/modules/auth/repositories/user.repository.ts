@@ -7,7 +7,7 @@ import { IUserRepository } from './interface/user.repository.interface';
 @Injectable()
 export class UserRepository implements IUserRepository {
   constructor(
-    @Inject('Knex')
+    @Inject('knex')
     private readonly knex: Knex,
   ) {}
 

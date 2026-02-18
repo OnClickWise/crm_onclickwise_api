@@ -6,7 +6,7 @@ import { IOrganizationRepository } from './interface/organization.repository.int
 @Injectable()
 export class OrganizationRepository implements IOrganizationRepository {
   constructor(
-    @Inject('Knex')
+    @Inject('knex')
     private readonly knex: Knex,
   ) {}
 
@@ -17,12 +17,19 @@ export class OrganizationRepository implements IOrganizationRepository {
   }
 
   async create(data: any) {
-    const [organization] = await this.knex('organizations')
+    try {
+      const [organization] = await this.knex('organizations')
       .insert({
         ...data,
       })
       .returning('*');
+      return organization;
+    }
+    catch (error){
+      console.log(error);
+    }
+    
 
-    return organization;
+    return null;
   }
 }
