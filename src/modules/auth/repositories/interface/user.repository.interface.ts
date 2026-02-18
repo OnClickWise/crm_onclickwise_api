@@ -4,7 +4,10 @@ export abstract class IUserRepository {
   abstract create(data: {
     name: string;
     email: string;
+    password: string
     organizationId: string;
     role: string;
   }): Promise<any>;
+
+  abstract findById(id: string): Promise<any | null>;
 }

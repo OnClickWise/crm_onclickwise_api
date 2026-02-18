@@ -1,5 +1,7 @@
 import { IsOptional, IsString } from 'class-validator';
-import { PipelineStageType } from '../entities/pipeline-stage.entity';
+import type { PipelineStageType } from '../entities/pipeline_stage-type';
+
+
 
 export class UpdateStageDto {
   @IsOptional()

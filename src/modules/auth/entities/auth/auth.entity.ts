@@ -3,66 +3,70 @@
 // =======================
 
 export interface LoginRequest {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface LoginResponse {
-  success: boolean
-  token?: string
+  success: boolean;
+  accessToken?: string;
+
+  refreshToken?: string;
   user?: {
-    id: string
-    email: string
-    name?: string
-    is_temporary_password?: boolean
-  }
+    id: string;
+    email: string;
+    name?: string;
+    is_temporary_password?: boolean;
+  };
   organization?: {
-    id: string
-    name: string
-    slug: string
-    email: string
-  }
-  error?: string
+    id: string;
+    name: string;
+    slug: string;
+    email: string;
+  };
+  error?: string;
 }
 
 export interface RegisterRequest {
   organization: {
-    name: string
-    slug: string
-    email: string
-    company_id: string
-    password: string
-    phone?: string
-    address?: string
-    city?: string
-    state?: string
-    country?: string
-    logo_url?: string
-  }
+    name: string;
+    slug: string;
+    email: string;
+    company_id: string;
+    password: string;
+    phone?: string;
+    address?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    logo_url?: string;
+  };
   representative: {
-    name: string
-    email: string
-    position: string
-    ssn: string
-  }
+    name: string;
+    email: string;
+    position: string;
+    ssn: string;
+  };
 }
 
 export interface RegisterResponse {
-  success: boolean
-  token?: string
+  success: boolean;
+  accessToken?: string;
+
+  refreshToken?: string;
   user?: {
-    id: string
-    email: string
-    name?: string
-    is_temporary_password?: boolean
-  }
+    id: string;
+    email: string;
+    name?: string;
+    is_temporary_password?: boolean;
+  };
   organization?: {
-    id: string
-    name: string
-    slug: string
-    email: string
-  }
-  error?: string
+    id: string;
+    name: string;
+    slug: string;
+    email: string;
+  };
+  error?: string;
 }
 
 // =======================
@@ -70,8 +74,8 @@ export interface RegisterResponse {
 // =======================
 
 export interface AuthPayload {
-  userId: string
-  email: string
-  organizationId: string
-  role: string
+  userId: string;
+  email: string;
+  organizationId: string;
+  role: string;
 }
