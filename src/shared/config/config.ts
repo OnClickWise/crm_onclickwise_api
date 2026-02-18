@@ -6,6 +6,12 @@ dotenv.config();
 export const endpoint: string = process.env.ENDPOINT || '';
 export const token: string = process.env.TOKEN || '';
 
+export const JWT_ACCESS_EXPIRES = '15m'
+export const JWT_REFRESH_EXPIRES = '7d'
+
+export const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET!
+
+
 // Exportar variáveis de ambiente
 export const {
   DB_HOST,

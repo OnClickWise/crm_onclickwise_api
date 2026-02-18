@@ -1,12 +1,11 @@
+import { PipelineStagesRepository } from '@/modules/pipeline/repositories/pipeline-stage.repository';
 import { Injectable } from '@nestjs/common';
 
-import { PipelineStagesRepository } from '@/modules/pipeline/repositories/pipeline-stage.repository';
-
 @Injectable()
-export class ListPipelinesUseCase {
+export class ReorderPipelineUseCase {
   constructor(private repo: PipelineStagesRepository) {}
 
-  async execute(organizationId: string) {
-    return this.repo.findByOrg(organizationId);
+  execute(orgId: string, stageIds: string[]) {
+    return this.repo.reorder(orgId, stageIds);
   }
 }

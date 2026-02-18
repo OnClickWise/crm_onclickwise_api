@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // 2️⃣ só depois importar coisas que dependem do env
-import { knexInstance } from '@/shared/config/knex';
+import { knexInstance } from './src/shared/config/knex';
 
 async function executarMigracao() {
   console.log('🚀 Iniciando script de migração com ts-node...');

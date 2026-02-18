@@ -3,6 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
 import { Knex } from 'knex';
 import { IUserRepository } from './interface/user.repository.interface';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class UserRepository implements IUserRepository {
@@ -37,13 +38,16 @@ export class UserRepository implements IUserRepository {
   async create(data: {
     name: string;
     email: string;
+    password: string
     organizationId: string;
     role: string;
   }) {
     const [user] = await this.knex('users')
       .insert({
+        id: randomUUID(),
         name: data.name,
         email: data.email,
+        password: data.password,
         organization_id: data.organizationId,
         role: data.role,
       })
@@ -51,4 +55,21 @@ export class UserRepository implements IUserRepository {
 
     return user;
   }
+
+  async findById(id: string) {
+  const user = await this.knex('users')
+    .where({ id })
+    .first()
+
+  if (!user) return null
+
+  const organization = await this.knex('organizations')
+    .where({ id: user.organization_id })
+    .first()
+
+  return {
+    ...user,
+    organization,
+  }
+}
 }

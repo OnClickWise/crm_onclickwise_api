@@ -2,21 +2,16 @@ import { PipelineStagesRepository } from '@/modules/pipeline/repositories/pipeli
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
-export class UpdatePipelineUseCase {
+export class DeletePipelineUseCase {
   constructor(private repo: PipelineStagesRepository) {}
 
-  async execute(id: string, organizationId: string, data: any) {
+  async execute(id: string, organizationId: string) {
     const stage = await this.repo.findById(id, organizationId);
 
     if (!stage) {
       throw new Error('Stage não encontrada');
     }
 
-    await this.repo.update(id, organizationId, {
-      ...data,
-      updated_at: new Date(),
-    });
-
-    return this.repo.findById(id, organizationId);
+    await this.repo.delete(id, organizationId);
   }
 }

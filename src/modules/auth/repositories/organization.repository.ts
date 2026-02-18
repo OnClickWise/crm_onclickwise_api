@@ -1,7 +1,7 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Knex } from 'knex';
 import { IOrganizationRepository } from './interface/organization.repository.interface';
-
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class OrganizationRepository implements IOrganizationRepository {
@@ -11,15 +11,14 @@ export class OrganizationRepository implements IOrganizationRepository {
   ) {}
 
   async findBySlug(slug: string) {
-    return this.knex('organizations')
-      .where({ slug })
-      .first();
+    return this.knex('organizations').where({ slug }).first();
   }
 
   async create(data: any) {
     try {
       const [organization] = await this.knex('organizations')
       .insert({
+        id: randomUUID(),
         ...data,
       })
       .returning('*');
