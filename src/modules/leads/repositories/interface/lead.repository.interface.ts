@@ -10,6 +10,9 @@ export interface ILeadRepository {
 
   // Leitura
   findById(id: string): Promise<LeadEntity | null>;
+
+  existsInOrganization(organizationId:string,leadId:string): Promise<LeadEntity>;
+
   findAll(filters: FilterLeadDto): Promise<{ leads:LeadEntity[]; total: number }>;
   
   // Buscas Especializadas (SSN, EIN, Nome, Email)
@@ -26,6 +29,6 @@ export interface ILeadRepository {
   delete(id: string): Promise<void>;
 
   // Anexos (Gestão de Metadados no Banco)
-  addAttachment(leadId: string, attachmentData: any): Promise<void>;
+  addAttachment(lead:LeadEntity, attachmentData: any): Promise<LeadEntity>;
   removeAttachment(leadId: string, attachmentId: string): Promise<void>;
 }

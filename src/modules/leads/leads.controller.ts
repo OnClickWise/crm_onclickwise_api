@@ -1,5 +1,4 @@
 import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards,Request,Req } from '@nestjs/common';
-
 // Importação dos Use Cases (Devem ser criados na pasta use-cases/leads)
 import { CreateLeadUseCase } from '@/use-cases/leads/createLead.useCase';
 import { SearchLeadUseCase } from '@/use-cases/leads/searchLead.useCase';
@@ -11,6 +10,11 @@ import { BulkPipelineUseCase } from '@/use-cases/leads/BulkPipelineUseCase';
 import { UploadAttachmentUseCase } from '@/use-cases/leads/uploadAttachment.useCase';
 import { GetLeadByIdUseCase } from '@/use-cases/leads/getLeadByIuseCase';
 import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
+
+
+
+import { UploadAttachmentDto } from '@/modules/leads/dtos/upload.attchment.dto';
+import { success } from 'zod';
 
 @Controller('leads')
 export class LeadsController {
@@ -87,9 +91,24 @@ searchByParams( @Query() allQueries: any) {
     return this.bulkPipeline.execute(body);
   }
 
+
+
+  @UseGuards(JwtAuthGuard)
   @Post(':id/attachments')
-  upload(@Param('id') id: string, @Body() file: any) {
-    return this.uploadAttach.execute(id, file);
+  async upload(@Param('id') id: string, @Req() req: any) {
+
+    const data = await req.file(); 
+  
+    if (!data) {
+      return;
+    }
+   
+    const modified = this.uploadAttach.execute(req.user.organizationId,id, data);
+    return {
+      success:true,
+      lead: modified
+    }
+
   }
 
 

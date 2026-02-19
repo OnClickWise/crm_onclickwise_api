@@ -25,11 +25,11 @@ export class CreateLeadUseCase {
     // 2. Criar a entidade (usando o modelo que definimos anteriormente)
     // Passamos o organizationId que geralmente vem do Token do usuário logado
     const assignedUserId = user_data.userId;
-    const organizationId = user_data.organizationId
+    const organization_id = user_data.organizationId
 
     const lead = new LeadEntity({
       ...data,
-      organizationId,
+      organization_id,
       assignedUserId,
       status: 'New',
     });

@@ -1,6 +1,9 @@
+import { Attachment } from "./attachment.entity";
+
+
 export class LeadEntity {
   id: string;
-  organizationId: string;
+  organization_id: string;
   assignedUserId?: string | null;
 
   // Dados Pessoais
@@ -25,10 +28,14 @@ export class LeadEntity {
   createdAt: Date;
   updatedAt: Date;
 
+  // Attachments
+
+  attachments?: Attachment[]
+
   // O construtor garante que a entidade nasça válida ou com defaults
   constructor(props: Partial<LeadEntity>, id?: string,assignedUserId?:string) {
     this.id = id || props.id!;
-    this.organizationId = props.organizationId!;
+    this.organization_id = props.organization_id!;
     this.assignedUserId = assignedUserId || props.assignedUserId || null;
     
     this.name = props.name!;

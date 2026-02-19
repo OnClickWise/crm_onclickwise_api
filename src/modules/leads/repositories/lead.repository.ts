@@ -6,6 +6,7 @@ import { CreateLeadDto } from '@/modules/leads/dtos/create.lead.dto';
 import { UpdateLeadDto } from '@/modules/leads/dtos/update.lead.dto';
 import { FilterLeadDto } from '@/modules/leads/dtos/lead.filter.dto';
 import { BulkUpdateLeadDto } from '@/modules/leads/dtos/bulk.update.lead.dto';
+import { Attachment } from '../entities/attachment.entity';
 
 
 function uuidv4(): string {
@@ -88,53 +89,58 @@ export class LeadRepository implements ILeadRepository {
   }
 
   async search(filters: any): Promise<{ leads: LeadEntity[]; total: number }> {
-  const query = this.knex(this.tableName);
+    const query = this.knex(this.tableName);
 
-  // 1. Lógica de Busca Global (se o usuário digitar algo no campo de busca)
-  if (filters.q) {
-    const searchTerm = filters.q;
-    query.where((builder) => {
-      builder.where('name', 'ilike', `%${searchTerm}%`)
-             .orWhere('email', 'ilike', `%${searchTerm}%`);
-      
-      // Só busca por SSN/EIN se o termo não tiver letras, para evitar erro de tipo no DB
-      if (!/[a-zA-Z]/.test(searchTerm)) {
-        builder.orWhere('ssn', searchTerm).orWhere('ein', searchTerm);
+    // 1. Pegamos o termo de busca (pode vir como 'q' ou 'search' do frontend)
+    const searchTerm = filters.q || filters.search;
+
+    if (searchTerm) {
+      query.where((builder) => {
+        builder.where('name', 'ilike', `%${searchTerm}%`)
+              .orWhere('email', 'ilike', `%${searchTerm}%`);
+        
+        if (!/[a-zA-Z]/.test(searchTerm)) {
+          builder.orWhere('ssn', searchTerm).orWhere('ein', searchTerm);
+        }
+      });
+    }
+
+    const { q, search, page, limit, ...specificFilters } = filters;
+    
+    Object.entries(specificFilters).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        // O banco de dados agora só recebe colunas válidas
+        query.where(`${this.tableName}.${key}`, value);
       }
     });
+
+
+    const totalQuery = query.clone().count('id as count').first();
+    
+    const leads = await query
+      .orderBy('name', 'asc')
+      .limit(limit || 10)
+      .offset(((page || 1) - 1) * (limit || 10));
+
+    const totalResult = await totalQuery;
+
+    return {
+      leads,
+      total: Number(totalResult?.count || 0),
+    };
   }
 
-  // 2. Filtros Específicos Dinâmicos (status, organizationId, etc.)
-  const { q, page, limit, ...specificFilters } = filters;
-  
-  Object.entries(specificFilters).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      query.where(`${this.tableName}.${key}`, value);
-    }
-  });
-
-  // 3. Execução das Queries (Total e Dados)
-  // Criamos uma cópia da query para contar o total sem paginação
-  const totalQuery = query.clone().count('id as count').first();
-  
-  // Aplicamos ordenação e paginação na query principal
-  const leads = await query
-    .orderBy('name', 'asc')
-    .limit(limit || 10)
-    .offset(((page || 1) - 1) * (limit || 10));
-
-  const totalResult = await totalQuery;
-
-  return {
-    leads,
-    total: Number(totalResult?.count || 0),
-  };
-}
-
   async findById(id: string): Promise<LeadEntity | null> {
-    return this.knex(this.tableName)
+    return await this.knex(this.tableName)
       .where({ id })
       .first();
+  }
+
+  async existsInOrganization(organizationId:string,leadId:string){
+    return await this.knex(this.tableName)
+        .where('id', leadId)
+        .where('organization_id', organizationId)
+        .first();
   }
 
   async findByEmail(email: string,organizationId:string): Promise<LeadEntity | null> {
@@ -164,12 +170,38 @@ export class LeadRepository implements ILeadRepository {
     await this.knex(this.tableName).where({ id }).delete();
   }
 
-  async addAttachment(leadId: string, attachmentData: any): Promise<void> {
-    await this.knex('lead_attachments').insert({
-      lead_id: leadId,
-      ...attachmentData,
-      created_at: new Date(),
-    });
+  async addAttachment(lead:LeadEntity, attachment: Attachment): Promise<LeadEntity> {
+
+    let currentAttachments:Attachment[] = [];
+
+      if (lead.attachments) {
+        try {
+          // Check if it's already an object or a JSON string
+          if (typeof lead.attachments === 'string') {
+            currentAttachments = JSON.parse(lead.attachments);
+          } else if (Array.isArray(lead.attachments)) {
+            currentAttachments = lead.attachments;
+          } else {
+            console.error('Invalid attachments format:', typeof lead.attachments);
+            currentAttachments = [];
+          }
+        } catch (error) {
+          console.error('Error parsing attachments JSON:', error);
+          currentAttachments = [];
+        }
+      }
+      
+      currentAttachments.push(attachment);
+      
+      const [updatedLead] = await this.knex(this.tableName)
+        .where('id', lead.id)
+        .andWhere('organization_id', lead.organization_id)
+        .update({
+          attachments: JSON.stringify(currentAttachments),
+          updated_at: new Date().toISOString()
+        })
+        .returning('*');
+      return updatedLead
   }
 
   async removeAttachment(leadId: string, attachmentId: string): Promise<void> {
