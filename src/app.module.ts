@@ -14,6 +14,7 @@ import { LeadsModule } from '@/modules/leads/leads.module';
 
     AuthModule, // ← registrar aqui
     LeadsModule,
+    PipelineModule,
     DatabaseModule,
   ],
   controllers: [],

@@ -13,7 +13,7 @@ import { GetLeadsByStatusUseCase } from '@/use-cases/leads/getLeadsbyStatus.useC
 import { BulkPipelineUseCase } from '@/use-cases/leads/BulkPipelineUseCase';
 import { UploadAttachmentUseCase } from '@/use-cases/leads/uploadAttachment.useCase';
 import { GetLeadByIdUseCase } from '@/use-cases/leads/getLeadByIuseCase';
-
+import { GetAttachmentByIdUseCase } from '@/use-cases/leads/getAttachmentUseCase';
 // Repositories
 import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
 
@@ -37,6 +37,7 @@ import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
     UploadAttachmentUseCase,
     //DownloadAttachmentUseCase,
     GetLeadByIdUseCase,
+    GetAttachmentByIdUseCase
   ],
   // Exportamos os Use Cases caso precisem ser usados em outros módulos (ex: Dashboards)
   exports: [

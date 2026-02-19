@@ -12,8 +12,9 @@ export class BulkPipelineUseCase {
   ) {}
 
   async execute(data: BulkUpdateLeadDto) {
+    
     // Validação de segurança: garantir que IDs foram fornecidos
-    if (!data.ids || data.ids.length === 0) {
+    if (!data.lead_ids || data.lead_ids.length === 0) {
       throw new Error('No leads selected for bulk update');
     }
 

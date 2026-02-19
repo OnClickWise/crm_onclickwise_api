@@ -9,12 +9,16 @@ import { GetLeadsByStatusUseCase } from '@/use-cases/leads/getLeadsbyStatus.useC
 import { BulkPipelineUseCase } from '@/use-cases/leads/BulkPipelineUseCase';
 import { UploadAttachmentUseCase } from '@/use-cases/leads/uploadAttachment.useCase';
 import { GetLeadByIdUseCase } from '@/use-cases/leads/getLeadByIuseCase';
+import { GetAttachmentByIdUseCase } from '@/use-cases/leads/getAttachmentUseCase';
 import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
 
 
 
 import { UploadAttachmentDto } from '@/modules/leads/dtos/upload.attchment.dto';
-import { success } from 'zod';
+
+import * as fs from 'fs';
+import * as path from 'path';
+import { file } from 'zod';
 
 @Controller('leads')
 export class LeadsController {
@@ -27,6 +31,7 @@ export class LeadsController {
     private getByStatus: GetLeadsByStatusUseCase,
     private bulkPipeline: BulkPipelineUseCase,
     private uploadAttach: UploadAttachmentUseCase,
+    private getAttachmentbyId: GetAttachmentByIdUseCase,
     //private downloadAttach: DownloadAttachmentUseCase,
     private getById: GetLeadByIdUseCase,
   ) {}
@@ -92,6 +97,25 @@ searchByParams( @Query() allQueries: any) {
   }
 
 
+
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':leadId/attachments/:attachmentId')
+  async getAttachment(@Param('leadId') leadId: string,@Param('attachmentId') attachmentId: string, @Req() req: any) {
+   
+    const result = await this.getAttachmentbyId.execute(req.user.organizationId,leadId,attachmentId)
+    if (result.success && result.attachment && result.filePath) {
+        
+        const fileBuffer = fs.readFileSync(result.filePath);
+        
+        return fileBuffer
+      }
+    else {
+      return {
+        sucess:false
+      }
+    }
+  }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/attachments')

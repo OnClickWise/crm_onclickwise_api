@@ -4,8 +4,7 @@ import { Attachment } from '@/modules/leads/entities/attachment.entity';
 import { randomUUID } from "crypto";
 import * as fs from 'fs';
 import * as path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+
 
 @Injectable()
 export class UploadAttachmentUseCase {
@@ -36,13 +35,13 @@ export class UploadAttachmentUseCase {
 
     const attachmentId = randomUUID()
     const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3000';
-
+    console.log(file.mimeType)
     const attachment: Attachment = {
       id: attachmentId,
       filename: file.filename,
       originalName: file.originalName,
-      mimeType: file.mimeType,
-      size: file.size,
+      mimeType: file.mimetype,
+      size: buffer.length,
       url: `${apiBaseUrl}/api/leads/${leadId}/attachments/${attachmentId}`,
       uploadedAt: new Date().toISOString()
     };

@@ -3,7 +3,7 @@ import { IsArray, IsString, IsNotEmpty, IsOptional } from 'class-validator';
 export class BulkUpdateLeadDto {
   @IsArray()
   @IsString({ each: true })
-  ids!: string[]; // Adicionado '!' pois é obrigatório
+  lead_ids!: string[]; // Adicionado '!' pois é obrigatório
 
   @IsString()
   @IsNotEmpty()

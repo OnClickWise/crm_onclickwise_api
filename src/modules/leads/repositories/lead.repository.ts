@@ -157,7 +157,7 @@ export class LeadRepository implements ILeadRepository {
 
   async updateBulkPipeline(data: BulkUpdateLeadDto): Promise<void> {
     await this.knex(this.tableName)
-      .whereIn('id', data.ids)
+      .whereIn('id', data.lead_ids)
       .update({
         status: data.status,
         pipeline_id: data.pipelineId,
@@ -192,7 +192,7 @@ export class LeadRepository implements ILeadRepository {
       }
       
       currentAttachments.push(attachment);
-      
+
       const [updatedLead] = await this.knex(this.tableName)
         .where('id', lead.id)
         .andWhere('organization_id', lead.organization_id)
@@ -203,6 +203,13 @@ export class LeadRepository implements ILeadRepository {
         .returning('*');
       return updatedLead
   }
+
+
+  async getAttachmentById(leadId: string, attachmentId: string, organizationId: string)
+  {
+
+  }
+
 
   async removeAttachment(leadId: string, attachmentId: string): Promise<void> {
     await this.knex('lead_attachments')

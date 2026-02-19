@@ -3,7 +3,7 @@ import { Knex } from 'knex';
 
 @Injectable()
 export class PipelineStagesRepository {
-  constructor(@Inject('Knex') private knex: Knex) {}
+  constructor(@Inject('knex') private knex: Knex) {}
 
   findByOrg(organizationId: string) {
     return this.knex('pipeline_stages')
