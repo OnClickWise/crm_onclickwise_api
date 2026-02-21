@@ -24,8 +24,10 @@ import { GetProfileUseCase } from '@/use-cases/auth/get-profile.useCase';
     RefreshUseCase,
     GetProfileUseCase,
     LogoutUseCase,
-    RefreshTokenRepository,
-
+    {
+      provide: RefreshTokenRepository,
+      useClass: RefreshTokenRepository,
+    },
     {
       provide: IUserRepository,
       useClass: UserRepository,

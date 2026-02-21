@@ -7,13 +7,13 @@ import type { PipelineStageType } from '../entities/pipeline_stage-type';
 
 export class CreateStageDto {
   @IsString()
-  name: string;
+  name!: string;
 
   @IsString()
-  slug: string;
+  slug!: string;
 
   @IsString()
-  color: string;
+  color!: string;
 
   @IsOptional()
   stage_type?: PipelineStageType;

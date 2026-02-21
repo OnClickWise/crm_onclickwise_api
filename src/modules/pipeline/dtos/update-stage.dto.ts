@@ -12,8 +12,8 @@ export class UpdateStageDto {
   @IsString()
   color?: string;
 
-  @IsOptional()
-  stage_type?: PipelineStageType;
+  //@IsOptional()
+ // stage_type?: PipelineStageType;
 
   @IsOptional()
   order?: number;

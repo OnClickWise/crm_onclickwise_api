@@ -6,7 +6,7 @@ import { v4 as uuid } from 'uuid'
 
 @Injectable()
 export class RefreshTokenRepository {
-  constructor(@Inject('Knex') private knex: Knex) {}
+  constructor(@Inject('knex') private knex: Knex) {}
 
   async create(userId: string, token: string, expiresAt: Date) {
     const hashedToken = await bcrypt.hash(token, 10)

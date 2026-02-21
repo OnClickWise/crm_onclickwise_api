@@ -6,7 +6,7 @@ import { randomUUID } from 'crypto';
 @Injectable()
 export class OrganizationRepository implements IOrganizationRepository {
   constructor(
-    @Inject('Knex')
+    @Inject('knex')
     private readonly knex: Knex,
   ) {}
 
@@ -14,14 +14,15 @@ export class OrganizationRepository implements IOrganizationRepository {
     return this.knex('organizations').where({ slug }).first();
   }
 
-  async create(data: any) {
+    async create(data: any) {
+    console.log(data)
     const [organization] = await this.knex('organizations')
       .insert({
         id: randomUUID(),
         ...data,
       })
       .returning('*');
-
     return organization;
   }
+
 }

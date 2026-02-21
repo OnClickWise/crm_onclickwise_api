@@ -6,6 +6,8 @@ import {
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { APP_CORS_ORIGINS_ALLOWED } from './shared/config/config';
+import contentParser from '@fastify/multipart';
+
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -41,17 +43,29 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
+  
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,
     }),
   );
+ 
+  await app.register(contentParser, {
+    limits: {
+      fieldNameSize: 50,      // Max field name size in bytes
+      fieldSize: 100,          // Max field value size in bytes
+      fields: 1,              // Max number of non-file fields
+      fileSize: 50 * 1024 * 1024, // 50MB (em bytes)
+      files: 1,                // Max number of file fields
+    },}
+  );
 
   await app.listen({
     port: Number(process.env.APP_PORT) || 8080,
     host: '0.0.0.0',
   });
+  
 }
 
 bootstrap();

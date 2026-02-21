@@ -8,7 +8,7 @@ import { randomUUID } from 'crypto';
 @Injectable()
 export class UserRepository implements IUserRepository {
   constructor(
-    @Inject('Knex')
+    @Inject('knex')
     private readonly knex: Knex,
   ) {}
 

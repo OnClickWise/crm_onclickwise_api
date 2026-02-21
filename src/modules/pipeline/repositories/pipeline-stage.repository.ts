@@ -3,13 +3,14 @@ import { Knex } from 'knex';
 
 @Injectable()
 export class PipelineStagesRepository {
-  constructor(@Inject('Knex') private knex: Knex) {}
+  constructor(@Inject('knex') private knex: Knex) {}
 
   findByOrg(organizationId: string) {
     return this.knex('pipeline_stages')
       .where({ organization_id: organizationId, is_active: true })
       .orderBy('order', 'asc');
   }
+  
 
   findById(id: string, organizationId: string) {
     return this.knex('pipeline_stages')

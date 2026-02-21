@@ -4,10 +4,10 @@ import { knexInstance } from '../config/knex';
 @Module({
   providers: [
     {
-      provide: 'Knex',
+      provide: 'knex',
       useValue: knexInstance,
     },
   ],
-  exports: ['Knex'],
+  exports: ['knex'],
 })
 export class DatabaseModule {}
