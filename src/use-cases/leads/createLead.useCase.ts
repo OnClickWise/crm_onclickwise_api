@@ -33,7 +33,6 @@ export class CreateLeadUseCase {
       assignedUserId,
       status: 'New',
     });
-
     const newLead = await this.leadRepository.create(lead);
     return {
       lead: newLead

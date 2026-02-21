@@ -1,4 +1,4 @@
-import { IsArray, IsString, IsNotEmpty, IsOptional } from 'class-validator';
+import { IsArray, IsString, IsNotEmpty, IsOptional, isBoolean } from 'class-validator';
 
 export class BulkUpdateLeadDto {
   @IsArray()
@@ -16,4 +16,7 @@ export class BulkUpdateLeadDto {
   @IsString()
   @IsOptional()
   stageId?: string; // Mantido '?' pois é opcional
+  
+  @IsOptional()
+  show_on_pipeline?:boolean;
 }

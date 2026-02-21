@@ -27,7 +27,7 @@ export class LeadRepository implements ILeadRepository {
     const [result] = await this.knex(this.tableName)
       .insert({
         id: uuidv4(), 
-        organization_id: data.organizationId,
+        organization_id: data.organization_id,
         assigned_user_id: data.assignedUserId || null,
         name: data.name,
         email: data.email,
@@ -38,7 +38,7 @@ export class LeadRepository implements ILeadRepository {
         status: data.status || 'New',
         value: data.value,
         description: data.description,
-        estimated_close_date: data.estimatedCloseDate,
+        estimated_close_date: data.estimated_close_date,
         created_at: new Date(),
         updated_at: new Date(),
       })
@@ -79,7 +79,7 @@ export class LeadRepository implements ILeadRepository {
     if (data.status) updateData.status = data.status;
     if (data.assignedUserId !== undefined) updateData.assigned_user_id = data.assignedUserId;
     if (data.value !== undefined) updateData.value = data.value;
-    if (data.estimatedCloseDate) updateData.estimated_close_date = data.estimatedCloseDate;
+    if (data.estimated_close_date) updateData.estimated_close_date = data.estimated_close_date;
 
     const [updated] = await this.knex(this.tableName)
       .where({ id })
@@ -162,6 +162,7 @@ export class LeadRepository implements ILeadRepository {
         status: data.status,
         pipeline_id: data.pipelineId,
         stage_id: data.stageId,
+        show_on_pipeline: data.show_on_pipeline,
         updated_at: new Date(),
       });
   }
