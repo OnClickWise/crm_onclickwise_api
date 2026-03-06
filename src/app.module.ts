@@ -4,7 +4,7 @@ import { AuthModule } from './modules/auth/auth.module'; // ← importar
 import { DatabaseModule } from './shared/database/database.module';
 import { PipelineModule } from './modules/pipeline/pipeline.module';
 import { LeadsModule } from '@/modules/leads/leads.module';
-
+import { WhatsappModule } from '@/modules/whatsapp/whatsapp.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -13,6 +13,7 @@ import { LeadsModule } from '@/modules/leads/leads.module';
     }),
 
     AuthModule, // ← registrar aqui
+    WhatsappModule,
     LeadsModule,
     PipelineModule,
     DatabaseModule,
