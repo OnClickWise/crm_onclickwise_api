@@ -41,11 +41,11 @@ export interface RegisterRequest {
     country?: string;
     logo_url?: string;
   };
-  representative: {
+  representative?: {
     name: string;
     email: string;
-    position: string;
-    ssn: string;
+    position?: string;
+    ssn?: string;
   };
 }
 

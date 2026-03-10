@@ -5,7 +5,11 @@ export async function up(knex: Knex): Promise<void> {
   if (!hasOrganizations) {
     throw new Error('Table "organizations" does not exist. Please run migrations in order.');
   }
-  
+  const hasUsers = await knex.schema.hasTable('users');
+  if (hasUsers) {
+    console.log('Table "users" already exists, skipping creation');
+    return;
+  }
   return knex.schema.createTable('users', function(table) {
     table.uuid('id').primary();
     table.text('email').notNullable().unique();

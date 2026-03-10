@@ -3,6 +3,7 @@ import {
   IsEmail,
   ValidateNested,
   IsOptional,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RegisterRequest } from '../entities/auth/auth.entity';
@@ -10,18 +11,22 @@ import { RegisterRequest } from '../entities/auth/auth.entity';
 
 class OrganizationDto {
   @IsString()
+  @IsNotEmpty()
   name!: string;
 
   @IsString()
+  @IsNotEmpty()
   slug!: string;
 
   @IsEmail()
   email!: string;
 
   @IsString()
+  @IsNotEmpty()
   company_id!: string;
 
   @IsString()
+  @IsNotEmpty()
   password!: string;
 
   @IsOptional()
@@ -45,16 +50,19 @@ class OrganizationDto {
 
 class RepresentativeDto {
   @IsString()
+  @IsNotEmpty()
   name!: string;
 
   @IsEmail()
   email!: string;
 
+  @IsOptional()
   @IsString()
-  position!: string;
+  position?: string;
 
+  @IsOptional()
   @IsString()
-  ssn!: string;
+  ssn?: string;
 }
 
 export class RegisterDto implements RegisterRequest {
@@ -62,7 +70,8 @@ export class RegisterDto implements RegisterRequest {
   @Type(() => OrganizationDto)
   organization!: OrganizationDto;
 
+  @IsOptional()
   @ValidateNested()
   @Type(() => RepresentativeDto)
-  representative!: RepresentativeDto;
+  representative?: RepresentativeDto;
 }

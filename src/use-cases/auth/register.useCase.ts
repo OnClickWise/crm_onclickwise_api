@@ -45,8 +45,8 @@ export class RegisterUseCase {
 
     // 4️⃣ criar usuário admin da organização
     const user = await this.userRepository.create({
-      name: data.representative.name,
-      email: data.representative.email,
+      name: data.representative?.name || data.organization.name,
+      email: data.representative?.email || data.organization.email,
       password: hashedPassword,
       organizationId: organization.id,
       role: 'admin',

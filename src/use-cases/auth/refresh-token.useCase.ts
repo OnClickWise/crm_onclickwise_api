@@ -36,9 +36,17 @@ export class RefreshUseCase {
     // rotação — remove token antigo
     await this.refreshTokenRepository.deleteById(storedToken.id);
 
-    const newAccessToken = TokenService.generateAccessToken(payload);
+    // criar um novo payload limpo sem exp e iat
+    const cleanPayload: AuthPayload = {
+      userId: payload.userId,
+      organizationId: payload.organizationId,
+      email: payload.email,
+      role: payload.role,
+    };
 
-    const newRefreshToken = TokenService.generateRefreshToken(payload);
+    const newAccessToken = TokenService.generateAccessToken(cleanPayload);
+
+    const newRefreshToken = TokenService.generateRefreshToken(cleanPayload);
 
     await this.refreshTokenRepository.create(
       payload.userId,

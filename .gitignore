@@ -1,7 +1,12 @@
 # compiled output
-/dist
-/node_modules
-/build
+/dist/
+node_modules/
+build/
+
+# TypeScript build outputs (caso build fora do dist)
+*.js
+*.d.ts
+*.tsbuildinfo
 
 # Logs
 logs
@@ -38,6 +43,7 @@ lerna-debug.log*
 # dotenv environment variable files
 .env
 .env.development.local
+.env.*
 .env.test.local
 .env.production.local
 .env.local
