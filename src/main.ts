@@ -7,6 +7,8 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { APP_CORS_ORIGINS_ALLOWED } from './shared/config/config';
 import contentParser from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import { join } from 'path';
 
 
 async function bootstrap() {
@@ -60,6 +62,12 @@ async function bootstrap() {
       files: 1,                // Max number of file fields
     },}
   );
+
+  // Servir arquivos estáticos da pasta uploads
+  await app.register(fastifyStatic, {
+    root: join(__dirname, '..', 'uploads'),
+    prefix: '/uploads/',
+  });
 
   await app.listen({
     port: Number(process.env.APP_PORT) || 8080,

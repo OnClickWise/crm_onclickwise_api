@@ -9,6 +9,8 @@ import { ListModule } from './modules/list/list.module';
 import { CardModule } from './modules/card/card.module';
 import { LeadsModule } from '@/modules/leads/leads.module';
 import { WhatsappModule } from '@/modules/whatsapp/whatsapp.module';
+import { OrganizationModule } from './modules/organization/organization.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -17,6 +19,7 @@ import { WhatsappModule } from '@/modules/whatsapp/whatsapp.module';
     }),
 
     AuthModule, // ← registrar aqui
+    OrganizationModule, // ← registrar aqui
     WhatsappModule,
     LeadsModule,
     PipelineModule,
