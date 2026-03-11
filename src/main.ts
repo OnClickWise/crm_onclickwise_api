@@ -20,7 +20,10 @@ async function bootstrap() {
   const origins = [
     'http://localhost:8080',
     'http://localhost:3000',
+    'http://localhost:3001',
     'http://127.0.0.1:8080',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3001',
   ];
 
   if (APP_CORS_ORIGINS_ALLOWED) {
