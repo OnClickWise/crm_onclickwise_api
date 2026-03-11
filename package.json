@@ -10,6 +10,7 @@
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
+    "start:fresh": "for /f \"tokens=5\" %a in ('netstat -ano ^| findstr 0.0.0.0:3000') do taskkill /PID %a /F & nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",
     "migrate": "ts-node run-migrations.ts",

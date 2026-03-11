@@ -72,4 +72,29 @@ export class UserRepository implements IUserRepository {
     organization,
   }
 }
+
+  async findByOrganizationId(organizationId: string, includeMaster = false) {
+    const query = this.knex('users')
+      .where({ organization_id: organizationId })
+      .select('id', 'name', 'email', 'role', 'created_at');
+
+    if (!includeMaster) {
+      query.whereNot({ role: 'master' });
+    }
+
+    return query;
+  }
+
+  async update(id: string, data: { name?: string; email?: string; role?: string }) {
+    const [user] = await this.knex('users')
+      .where({ id })
+      .update(data)
+      .returning('*');
+
+    return user;
+  }
+
+  async deleteById(id: string): Promise<void> {
+    await this.knex('users').where({ id }).delete();
+  }
 }

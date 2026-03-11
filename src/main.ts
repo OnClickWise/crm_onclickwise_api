@@ -24,6 +24,10 @@ async function bootstrap() {
     'http://127.0.0.1:8080',
     'http://127.0.0.1:3000',
     'http://127.0.0.1:3001',
+    'https://onclickwise.com.br',
+    'https://www.onclickwise.com.br',
+    'http://onclickwise.com.br',
+    'http://www.onclickwise.com.br',
   ];
 
   if (APP_CORS_ORIGINS_ALLOWED) {
