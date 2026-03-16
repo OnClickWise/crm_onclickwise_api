@@ -72,7 +72,9 @@ async function bootstrap() {
 
   // Servir arquivos estáticos da pasta uploads
   await app.register(fastifyStatic, {
-    root: join(__dirname, '..', 'uploads'),
+    // Uploads são salvos em process.cwd()/uploads no controller de organização.
+    // Usar a mesma raiz evita 404 em produção e em modo build.
+    root: join(process.cwd(), 'uploads'),
     prefix: '/uploads/',
   });
 
