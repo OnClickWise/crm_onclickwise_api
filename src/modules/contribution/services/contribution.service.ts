@@ -6,6 +6,18 @@ import { randomUUID } from 'crypto';
 export class ContributionService {
   constructor(@Inject('knex') private readonly knex: Knex) {}
 
+  private hasOrganizationWideAccess(user: any): boolean {
+    const role = String(user?.role || '').toLowerCase();
+    return role === 'admin' || role === 'master';
+  }
+
+  private applyPortfolioVisibility(query: Knex.QueryBuilder, user: any, userId: string, userColumn: string) {
+    if (!this.hasOrganizationWideAccess(user)) {
+      query.andWhere(userColumn, userId);
+    }
+    return query;
+  }
+
   private getScope(user: any): { organizationId: string; userId: string } {
     if (!user?.organizationId || !user?.userId) {
       throw new UnauthorizedException('Usuário sem organização vinculada');
@@ -17,13 +29,13 @@ export class ContributionService {
     };
   }
 
-  private async ensurePortfolioAccess(portfolioId: string, organizationId: string, userId: string) {
-    const portfolio = await this.knex('portfolios')
-      .where({ id: portfolioId, organization_id: organizationId })
-      .andWhere((builder) => {
-        builder.where('user_id', userId).orWhereNull('user_id');
-      })
-      .first();
+  private async ensurePortfolioAccess(portfolioId: string, organizationId: string, userId: string, user: any) {
+    const query = this.knex('portfolios')
+      .where({ id: portfolioId, organization_id: organizationId });
+
+    this.applyPortfolioVisibility(query, user, userId, 'user_id');
+
+    const portfolio = await query.first();
 
     if (!portfolio) {
       throw new NotFoundException('Carteira não encontrada');
@@ -34,7 +46,7 @@ export class ContributionService {
 
   async createContribution(data: any, user: any) {
     const { organizationId, userId } = this.getScope(user);
-    await this.ensurePortfolioAccess(data.portfolioId, organizationId, userId);
+    await this.ensurePortfolioAccess(data.portfolioId, organizationId, userId, user);
 
     const [contribution] = await this.knex('contributions')
       .insert({
@@ -62,11 +74,10 @@ export class ContributionService {
       .join('portfolios as p', 'p.id', 'c.portfolio_id')
       .leftJoin('investments as i', 'i.id', 'c.investment_id')
       .where('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select('c.*', 'p.name as portfolio_name', 'i.asset_name')
       .orderBy('c.date', 'desc');
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
 
     if (portfolioId) {
       query.andWhere('c.portfolio_id', portfolioId);
@@ -78,22 +89,22 @@ export class ContributionService {
   async updateContribution(id: string, data: any, user: any) {
     const { organizationId, userId } = this.getScope(user);
 
-    const existing = await this.knex('contributions as c')
+    const query = this.knex('contributions as c')
       .join('portfolios as p', 'p.id', 'c.portfolio_id')
       .where('c.id', id)
       .andWhere('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select('c.*')
-      .first();
+      ;
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
+    const existing = await query.first();
 
     if (!existing) {
       throw new NotFoundException('Aporte não encontrado');
     }
 
     if (data.portfolioId !== undefined) {
-      await this.ensurePortfolioAccess(data.portfolioId, organizationId, userId);
+      await this.ensurePortfolioAccess(data.portfolioId, organizationId, userId, user);
     }
 
     const payload: any = {
@@ -120,14 +131,14 @@ export class ContributionService {
   async deleteContribution(id: string, user: any) {
     const { organizationId, userId } = this.getScope(user);
 
-    const deleted = await this.knex('contributions as c')
+    const query = this.knex('contributions as c')
       .join('portfolios as p', 'p.id', 'c.portfolio_id')
       .where('c.id', id)
       .andWhere('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
-      .delete('c');
+      ;
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
+    const deleted = await query.delete('c');
 
     if (!deleted) {
       throw new NotFoundException('Aporte não encontrado');

@@ -6,6 +6,18 @@ import { randomUUID } from 'crypto';
 export class PortfolioService {
   constructor(@Inject('knex') private readonly knex: Knex) {}
 
+  private hasOrganizationWideAccess(user: any): boolean {
+    const role = String(user?.role || '').toLowerCase();
+    return role === 'admin' || role === 'master';
+  }
+
+  private applyPortfolioVisibility(query: Knex.QueryBuilder, user: any, userId: string, userColumn: string) {
+    if (!this.hasOrganizationWideAccess(user)) {
+      query.andWhere(userColumn, userId);
+    }
+    return query;
+  }
+
   private getScope(user: any): { organizationId: string; userId: string } {
     if (!user?.organizationId || !user?.userId) {
       throw new UnauthorizedException('Usuário sem organização vinculada');
@@ -53,9 +65,6 @@ export class PortfolioService {
       .leftJoin('investors as i', 'i.id', 'p.investor_id')
       .leftJoin(investmentsSumSubquery, 'inv_sum.portfolio_id', 'p.id')
       .where('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select(
         'p.*',
         'u.name as owner_name',
@@ -67,6 +76,8 @@ export class PortfolioService {
         this.knex.raw('COALESCE(p.initial_amount, 0) + COALESCE(inv_sum.current_assets_total, 0) as current_total'),
       )
       .orderBy('p.created_at', 'desc');
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
 
     if (investorId) {
       query.andWhere('p.investor_id', investorId);
@@ -85,15 +96,12 @@ export class PortfolioService {
       .groupBy('portfolio_id')
       .as('inv_sum');
 
-    const portfolio = await this.knex('portfolios as p')
+    const query = this.knex('portfolios as p')
       .leftJoin('users as u', 'u.id', 'p.user_id')
       .leftJoin('investors as i', 'i.id', 'p.investor_id')
       .leftJoin(investmentsSumSubquery, 'inv_sum.portfolio_id', 'p.id')
       .where('p.id', id)
       .andWhere('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select(
         'p.*',
         'u.name as owner_name',
@@ -103,8 +111,11 @@ export class PortfolioService {
         this.knex.raw('COALESCE(inv_sum.current_assets_total, 0) as current_assets_total'),
         this.knex.raw('COALESCE(inv_sum.profit_total, 0) as profit_total'),
         this.knex.raw('COALESCE(p.initial_amount, 0) + COALESCE(inv_sum.current_assets_total, 0) as current_total'),
-      )
-      .first();
+      );
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
+
+    const portfolio = await query.first();
 
     if (!portfolio) {
       throw new NotFoundException('Carteira não encontrada');
@@ -125,13 +136,12 @@ export class PortfolioService {
     if (data.initialAmount !== undefined) payload.initial_amount = data.initialAmount;
     if (data.isActive !== undefined) payload.is_active = data.isActive;
 
-    const [portfolio] = await this.knex('portfolios')
-      .where({ id, organization_id: organizationId })
-      .andWhere((builder) => {
-        builder.where('user_id', userId).orWhereNull('user_id');
-      })
-      .update(payload)
-      .returning('*');
+    const updateQuery = this.knex('portfolios')
+      .where({ id, organization_id: organizationId });
+
+    this.applyPortfolioVisibility(updateQuery, user, userId, 'user_id');
+
+    const [portfolio] = await updateQuery.update(payload).returning('*');
 
     if (!portfolio) {
       throw new NotFoundException('Carteira não encontrada');
@@ -143,12 +153,12 @@ export class PortfolioService {
   async deletePortfolio(id: string, user: any) {
     const { organizationId, userId } = this.getScope(user);
 
-    const deleted = await this.knex('portfolios')
-      .where({ id, organization_id: organizationId })
-      .andWhere((builder) => {
-        builder.where('user_id', userId).orWhereNull('user_id');
-      })
-      .delete();
+    const deleteQuery = this.knex('portfolios')
+      .where({ id, organization_id: organizationId });
+
+    this.applyPortfolioVisibility(deleteQuery, user, userId, 'user_id');
+
+    const deleted = await deleteQuery.delete();
 
     if (!deleted) {
       throw new NotFoundException('Carteira não encontrada');

@@ -21,6 +21,18 @@ export class InvestmentService {
   constructor(@Inject('knex') private readonly knex: Knex) {}
   private readonly brapiToken = process.env.BRAPI_TOKEN || 'nqCTAyoKAbHLUAgPQzcyWn';
 
+  private hasOrganizationWideAccess(user: any): boolean {
+    const role = String(user?.role || '').toLowerCase();
+    return role === 'admin' || role === 'master';
+  }
+
+  private applyPortfolioVisibility(query: Knex.QueryBuilder, user: any, userId: string, userColumn = 'p.user_id') {
+    if (!this.hasOrganizationWideAccess(user)) {
+      query.andWhere(userColumn, userId);
+    }
+    return query;
+  }
+
   private getScope(user: any): { organizationId: string; userId: string } {
     if (!user?.organizationId || !user?.userId) {
       throw new UnauthorizedException('Usuário sem organização vinculada');
@@ -107,13 +119,14 @@ export class InvestmentService {
     return prices;
   }
 
-  private async ensurePortfolioBelongsToOrganization(portfolioId: string, organizationId: string, userId: string) {
-    const portfolio = await this.knex('portfolios')
+  private async ensurePortfolioBelongsToOrganization(portfolioId: string, organizationId: string, userId: string, user: any) {
+    const portfolioQuery = this.knex('portfolios')
       .where({ id: portfolioId, organization_id: organizationId })
-      .andWhere((builder) => {
-        builder.where('user_id', userId).orWhereNull('user_id');
-      })
-      .first();
+      ;
+
+    this.applyPortfolioVisibility(portfolioQuery, user, userId, 'user_id');
+
+    const portfolio = await portfolioQuery.first();
 
     if (!portfolio) {
       throw new NotFoundException('Carteira não encontrada');
@@ -124,7 +137,7 @@ export class InvestmentService {
 
   async createInvestment(data: any, user: any) {
     const { organizationId, userId } = this.getScope(user);
-    await this.ensurePortfolioBelongsToOrganization(data.portfolioId, organizationId, userId);
+    await this.ensurePortfolioBelongsToOrganization(data.portfolioId, organizationId, userId, user);
 
     const metrics = this.calculateMetrics({
       quantity: data.quantity,
@@ -162,11 +175,10 @@ export class InvestmentService {
     const query = this.knex('investments as inv')
       .join('portfolios as p', 'p.id', 'inv.portfolio_id')
       .where('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select('inv.*', 'p.name as portfolio_name')
       .orderBy('inv.created_at', 'desc');
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
 
     if (portfolioId) {
       query.andWhere('inv.portfolio_id', portfolioId);
@@ -178,15 +190,15 @@ export class InvestmentService {
   async getInvestmentById(id: string, user: any) {
     const { organizationId, userId } = this.getScope(user);
 
-    const investment = await this.knex('investments as inv')
+    const query = this.knex('investments as inv')
       .join('portfolios as p', 'p.id', 'inv.portfolio_id')
       .where('inv.id', id)
       .andWhere('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select('inv.*', 'p.name as portfolio_name')
-      .first();
+      ;
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
+    const investment = await query.first();
 
     if (!investment) {
       throw new NotFoundException('Ativo não encontrado');
@@ -198,22 +210,22 @@ export class InvestmentService {
   async updateInvestment(id: string, data: any, user: any) {
     const { organizationId, userId } = this.getScope(user);
 
-    const existing = await this.knex('investments as inv')
+    const query = this.knex('investments as inv')
       .join('portfolios as p', 'p.id', 'inv.portfolio_id')
       .where('inv.id', id)
       .andWhere('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select('inv.*')
-      .first();
+      ;
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
+    const existing = await query.first();
 
     if (!existing) {
       throw new NotFoundException('Ativo não encontrado');
     }
 
     if (data.portfolioId !== undefined) {
-      await this.ensurePortfolioBelongsToOrganization(data.portfolioId, organizationId, userId);
+      await this.ensurePortfolioBelongsToOrganization(data.portfolioId, organizationId, userId, user);
     }
 
     const payload: any = {
@@ -252,15 +264,15 @@ export class InvestmentService {
   async deleteInvestment(id: string, user: any) {
     const { organizationId, userId } = this.getScope(user);
 
-    const existing = await this.knex('investments as inv')
+    const query = this.knex('investments as inv')
       .join('portfolios as p', 'p.id', 'inv.portfolio_id')
       .where('inv.id', id)
       .andWhere('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select('inv.id')
-      .first();
+      ;
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
+    const existing = await query.first();
 
     if (!existing) {
       throw new NotFoundException('Ativo não encontrado');
@@ -276,13 +288,14 @@ export class InvestmentService {
   async refreshPrices(user: any) {
     const { organizationId, userId } = this.getScope(user);
 
-    const investments = await this.knex('investments as inv')
+    const query = this.knex('investments as inv')
       .join('portfolios as p', 'p.id', 'inv.portfolio_id')
       .where('p.organization_id', organizationId)
-      .andWhere((builder) => {
-        builder.where('p.user_id', userId).orWhereNull('p.user_id');
-      })
       .select('inv.id', 'inv.asset_name', 'inv.asset_type', 'inv.quantity', 'inv.average_price', 'inv.total_invested');
+
+    this.applyPortfolioVisibility(query, user, userId, 'p.user_id');
+
+    const investments = await query;
 
     if (investments.length === 0) {
       return { updated: 0 };
