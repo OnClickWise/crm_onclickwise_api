@@ -12,9 +12,14 @@ import { join } from 'path';
 
 
 async function bootstrap() {
+  const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 10);
+  const maxUploadBytes = maxUploadMb * 1024 * 1024;
+
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
-    new FastifyAdapter(),
+    new FastifyAdapter({
+      bodyLimit: maxUploadBytes,
+    }),
   );
 
   const origins = [
@@ -63,9 +68,9 @@ async function bootstrap() {
   await app.register(contentParser, {
     limits: {
       fieldNameSize: 50,      // Max field name size in bytes
-      fieldSize: 100,          // Max field value size in bytes
+      fieldSize: 1024 * 1024, // Max field value size in bytes
       fields: 1,              // Max number of non-file fields
-      fileSize: 50 * 1024 * 1024, // 50MB (em bytes)
+      fileSize: maxUploadBytes,
       files: 1,                // Max number of file fields
     },}
   );

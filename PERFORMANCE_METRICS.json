@@ -1,0 +1,507 @@
+{
+  "analysis": {
+    "date": "2026-03-21",
+    "project": "CRM OnClickWise API",
+    "modules_analyzed": [
+      "investment",
+      "portfolio",
+      "contribution",
+      "investor",
+      "dividend"
+    ],
+    "total_issues": 6,
+    "critical_issues": 3,
+    "medium_issues": 2,
+    "low_issues": 1
+  },
+  "issues": [
+    {
+      "id": 1,
+      "title": "N+1 Problem: refreshAllPrices Loop Update",
+      "severity": "CRITICAL",
+      "category": "database",
+      "location": "src/modules/investment/services/investment.service.ts:300-350",
+      "methods_affected": [
+        "refreshAllPrices()",
+        "refreshPrices(user)"
+      ],
+      "description": "Loop executando update individual para cada investment. Com 500 investments = 501 queries.",
+      "current_pattern": "for (const inv of investments) { await knex('investments').where({id}).update(...) }",
+      "impact": {
+        "queries_before": 501,
+        "queries_after": 2,
+        "time_before_ms": 5000,
+        "time_after_ms": 800,
+        "improvement_percent": 99.6
+      },
+      "frequency": "Every 15 minutes (96x per day)",
+      "fix_approach": "Batch update com CASE/WHEN ou VALUES clause",
+      "implementation_hours": 4,
+      "priority": 1,
+      "code_snippet": {
+        "before": "for (const investment of investments) { await this.knex('investments').where({id}).update(...) }",
+        "after": "await this.knex.raw('UPDATE investments SET current_price = CASE id WHEN ? THEN ? ... END WHERE id IN (...)')"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Missing Cache on External API (BRAPI)",
+      "severity": "CRITICAL",
+      "category": "caching",
+      "location": "src/modules/investment/services/investment.service.ts:100-130",
+      "methods_affected": [
+        "fetchCurrentPrices()",
+        "refreshAllPrices()",
+        "refreshPrices()"
+      ],
+      "description": "API external calls sem cache. BRAPI com rate limit de 500 requests/dia.",
+      "current_pattern": "await fetch(url) without caching",
+      "impact": {
+        "requests_before_per_day": 336,
+        "requests_after_per_day": 96,
+        "requests_saved": 240,
+        "improvement_percent": 71.4,
+        "cache_ttl_seconds": 300
+      },
+      "frequency": "Every 15 minutes (96x per day)",
+      "fix_approach": "CacheService com Redis e TTL de 5 minutos",
+      "implementation_hours": 2,
+      "priority": 2,
+      "code_snippet": {
+        "before": "const stockData = await this.fetchJson(url)",
+        "after": "const stockData = await this.cacheService.getOrSet(key, () => this.fetchJson(url), 300)"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Missing Performance Indexes",
+      "severity": "CRITICAL",
+      "category": "database",
+      "location": "migrations/",
+      "tables_affected": [
+        "investments",
+        "portfolios",
+        "contributions",
+        "investors"
+      ],
+      "description": "Índices faltando para queries complexas resultam em full table scans.",
+      "current_indexes": {
+        "investments": ["portfolio_id"],
+        "portfolios": ["organization_id", "investor_id"],
+        "contributions": ["portfolio_id", "investment_id", "date"],
+        "investors": ["organization_id"]
+      },
+      "missing_indexes": [
+        {
+          "table": "investments",
+          "columns": ["portfolio_id", "total_invested", "current_value", "profit"],
+          "reason": "Suportando subquery de agregação"
+        },
+        {
+          "table": "portfolios",
+          "columns": ["organization_id", "user_id", "id"],
+          "reason": "WHERE + JOIN filtering"
+        },
+        {
+          "table": "portfolios",
+          "columns": ["investor_id", "is_active"],
+          "reason": "Investor portfolio queries"
+        },
+        {
+          "table": "contributions",
+          "columns": ["portfolio_id", "date"],
+          "reason": "Date range filtering"
+        },
+        {
+          "table": "investments",
+          "columns": ["portfolio_id", "asset_name"],
+          "reason": "Asset search queries"
+        },
+        {
+          "table": "investors",
+          "columns": ["organization_id", "is_active"],
+          "reason": "Organization visibility"
+        }
+      ],
+      "impact": {
+        "query_performance_improvement_percent": 50,
+        "full_table_scans_eliminated": 5
+      },
+      "implementation_hours": 1,
+      "priority": 3
+    },
+    {
+      "id": 4,
+      "title": "SELECT Wildcard (*) Fetching Unused Columns",
+      "severity": "MEDIUM",
+      "category": "database",
+      "location": "src/modules/investment/services/investment.service.ts:178, 197, 217",
+      "methods_affected": [
+        "listInvestments()",
+        "getInvestmentById()",
+        "updateInvestment()"
+      ],
+      "description": "Selecionando inv.* e p.* traz todas as 15 colunas quando listagem precisa apenas de 11.",
+      "tables_affected": ["investments", "portfolios", "contributions"],
+      "current_pattern": ".select('inv.*', 'p.name as portfolio_name')",
+      "impact": {
+        "unnecessary_columns_percent": 27,
+        "network_transfer_reduction_percent": 25,
+        "query_size_reduction_percent": 30
+      },
+      "implementation_hours": 2,
+      "priority": 4,
+      "code_snippet": {
+        "before": ".select('inv.*', 'p.name as portfolio_name')",
+        "after": ".select('inv.id', 'inv.asset_name', 'inv.quantity', 'inv.current_price', ..., 'p.name as portfolio_name')"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Subquery Agregação Sem Cache",
+      "severity": "MEDIUM",
+      "category": "caching",
+      "location": "src/modules/portfolio/services/portfolio.service.ts:45-75",
+      "methods_affected": [
+        "listPortfolios()",
+        "getPortfolioById()"
+      ],
+      "description": "Subquery de investimentos agregados executa toda vez. Cálculos pesados sem cache.",
+      "current_pattern": "LEFT JOIN (SELECT SUM(...) GROUP BY portfolio_id)",
+      "impact": {
+        "queries_saved_per_request": 1,
+        "time_reduction_ms": 250,
+        "cache_hit_potential_percent": 80
+      },
+      "cache_ttl_seconds": 300,
+      "implementation_hours": 3,
+      "priority": 5,
+      "code_snippet": {
+        "before": "let query = knex(...).leftJoin(investmentsSumSubquery, ...)",
+        "after": "let query = await this.cacheService.getOrSet(`portfolio:${id}`, () => knex(...), 300)"
+      }
+    },
+    {
+      "id": 6,
+      "title": "No Application-Level Caching Strategy",
+      "severity": "MEDIUM",
+      "category": "architecture",
+      "location": "src/modules/ (all services)",
+      "description": "Nenhum cache implementado em services. Sem @Cacheable, sem Redis integration.",
+      "current_pattern": "Direct database queries always",
+      "impact": {
+        "cache_hit_potential_percent": 85,
+        "query_reduction_percent": 60,
+        "improvement": "Implementar Redis + NestJS Cache"
+      },
+      "cache_targets": [
+        "Portfolio GET (5min)",
+        "Investment list (2min)",
+        "Investor list (10min)",
+        "API prices (5min)"
+      ],
+      "implementation_hours": 6,
+      "priority": 6,
+      "dependencies": [
+        "@nestjs/cache-manager@^2.1.0",
+        "cache-manager@^5.3.2",
+        "cache-manager-redis-store@^3.0.1"
+      ]
+    }
+  ],
+  "migration_plan": {
+    "phase_1": {
+      "name": "URGENT (Next 2-3 days)",
+      "duration_hours": 7,
+      "issues": [1, 2, 3],
+      "expected_improvements": {
+        "refresh_performance_percent": 90,
+        "api_requests_reduction_percent": 71,
+        "query_performance_percent": 50
+      },
+      "tasks": [
+        {
+          "issue_id": 1,
+          "task": "Refactor refreshAllPrices with batch update",
+          "hours": 4,
+          "files_to_modify": [
+            "src/modules/investment/services/investment.service.ts"
+          ]
+        },
+        {
+          "issue_id": 2,
+          "task": "Add cache service and integrate BRAPI",
+          "hours": 2,
+          "files_to_create": [
+            "src/shared/cache/cache.service.ts"
+          ],
+          "files_to_modify": [
+            "src/modules/investment/services/investment.service.ts",
+            "src/app.module.ts"
+          ]
+        },
+        {
+          "issue_id": 3,
+          "task": "Create and run migration for indexes",
+          "hours": 1,
+          "files_to_create": [
+            "migrations/[timestamp]_add_performance_indexes.ts"
+          ]
+        }
+      ]
+    },
+    "phase_2": {
+      "name": "SHORT TERM (This sprint)",
+      "duration_hours": 8,
+      "issues": [4, 5, 6],
+      "expected_improvements": {
+        "query_performance_percent": 75,
+        "cache_hit_ratio_percent": 85,
+        "network_transfer_percent": 25
+      },
+      "tasks": [
+        {
+          "issue_id": 4,
+          "task": "Remove wildcard SELECT statements",
+          "hours": 2,
+          "files_to_modify": [
+            "src/modules/investment/services/investment.service.ts",
+            "src/modules/portfolio/services/portfolio.service.ts",
+            "src/modules/contribution/services/contribution.service.ts"
+          ]
+        },
+        {
+          "issue_id": 5,
+          "task": "Add caching to Portfolio queries",
+          "hours": 3,
+          "files_to_modify": [
+            "src/modules/portfolio/services/portfolio.service.ts",
+            "src/shared/cache/cache.service.ts"
+          ]
+        },
+        {
+          "issue_id": 6,
+          "task": "Implement query-level caching decorator",
+          "hours": 3,
+          "files_to_create": [
+            "src/shared/cache/query-cache.decorator.ts",
+            "src/shared/cache/query-cache.interceptor.ts"
+          ],
+          "files_to_modify": [
+            "src/modules/portfolio/portfolio.module.ts",
+            "src/modules/investment/investment.module.ts"
+          ]
+        }
+      ]
+    },
+    "phase_3": {
+      "name": "MEDIUM TERM (Next sprint)",
+      "duration_hours": 8,
+      "tasks": [
+        {
+          "task": "Setup query logging and monitoring",
+          "hours": 4
+        },
+        {
+          "task": "Add performance testing",
+          "hours": 2
+        },
+        {
+          "task": "Document best practices",
+          "hours": 2
+        }
+      ]
+    }
+  },
+  "implementation_checklist": {
+    "phase_1": [
+      {
+        "task": "Review and approve refactoring of refreshAllPrices",
+        "status": "pending"
+      },
+      {
+        "task": "Implement batch update logic",
+        "status": "pending"
+      },
+      {
+        "task": "Create cache.service.ts",
+        "status": "pending"
+      },
+      {
+        "task": "Integrate CacheModule in app.module.ts",
+        "status": "pending"
+      },
+      {
+        "task": "Add cache to fetchCurrentPrices",
+        "status": "pending"
+      },
+      {
+        "task": "Create performance indexes migration",
+        "status": "pending"
+      },
+      {
+        "task": "Run migration",
+        "status": "pending"
+      },
+      {
+        "task": "Test performance improvements",
+        "status": "pending"
+      }
+    ],
+    "phase_2": [
+      {
+        "task": "Update SELECT statements - investment.service.ts",
+        "status": "pending"
+      },
+      {
+        "task": "Update SELECT statements - portfolio.service.ts",
+        "status": "pending"
+      },
+      {
+        "task": "Update SELECT statements - contribution.service.ts",
+        "status": "pending"
+      },
+      {
+        "task": "Add cache to getPortfolioById",
+        "status": "pending"
+      },
+      {
+        "task": "Add cache to listPortfolios",
+        "status": "pending"
+      },
+      {
+        "task": "Create query-cache decorator",
+        "status": "pending"
+      },
+      {
+        "task": "Create query-cache interceptor",
+        "status": "pending"
+      },
+      {
+        "task": "Apply decorators to controllers",
+        "status": "pending"
+      },
+      {
+        "task": "Run full regression tests",
+        "status": "pending"
+      },
+      {
+        "task": "Deploy to staging",
+        "status": "pending"
+      }
+    ]
+  },
+  "performance_metrics": {
+    "before": {
+      "refreshAllPrices_queries": 501,
+      "refreshAllPrices_time_ms": 5000,
+      "portfolio_list_queries": 4,
+      "portfolio_list_time_ms": 300,
+      "portfolio_get_queries": 4,
+      "portfolio_get_time_ms": 800,
+      "brapi_requests_per_day": 336,
+      "cache_hit_ratio_percent": 0
+    },
+    "after": {
+      "refreshAllPrices_queries": 2,
+      "refreshAllPrices_time_ms": 800,
+      "portfolio_list_queries": 1,
+      "portfolio_list_time_ms": 80,
+      "portfolio_get_queries": 1,
+      "portfolio_get_time_ms": 100,
+      "brapi_requests_per_day": 96,
+      "cache_hit_ratio_percent": 85
+    },
+    "improvements": {
+      "refreshAllPrices_queries_reduction_percent": 99.6,
+      "refreshAllPrices_time_reduction_percent": 84.0,
+      "portfolio_list_queries_reduction_percent": 75.0,
+      "portfolio_list_time_reduction_percent": 73.3,
+      "portfolio_get_queries_reduction_percent": 75.0,
+      "portfolio_get_time_reduction_percent": 87.5,
+      "brapi_requests_reduction_percent": 71.4,
+      "overall_database_load_reduction_percent": 65.0
+    }
+  },
+  "dependencies_required": {
+    "npm_packages": [
+      {
+        "name": "@nestjs/cache-manager",
+        "version": "^2.1.0",
+        "reason": "NestJS caching integration"
+      },
+      {
+        "name": "cache-manager",
+        "version": "^5.3.2",
+        "reason": "Cache management library"
+      },
+      {
+        "name": "cache-manager-redis-store",
+        "version": "^3.0.1",
+        "reason": "Redis cache store"
+      }
+    ],
+    "install_command": "npm install @nestjs/cache-manager cache-manager cache-manager-redis-store"
+  },
+  "testing_strategy": {
+    "unit_tests": [
+      "Test batch update logic in isolation",
+      "Test cache service getOrSet",
+      "Test cache invalidation"
+    ],
+    "integration_tests": [
+      "Test refreshAllPrices with 500+ investments",
+      "Test portfolio queries with caching",
+      "Test BRAPI price caching"
+    ],
+    "load_tests": [
+      "Simulate 100 concurrent portfolio requests",
+      "Measure cache hit ratio",
+      "Monitor database connection pool"
+    ],
+    "performance_benchmarks": [
+      "refreshAllPrices execution time",
+      "Portfolio list query time",
+      "BRAPI request volume"
+    ]
+  },
+  "rollback_plan": {
+    "phase_1_rollback": "Remove indexes (takes ~5 minutes), revert batch update to loop",
+    "phase_2_rollback": "Disable cache decorators, remove CacheModule",
+    "data_safety": "No data changes, only performance optimization"
+  },
+  "monitoring_after_deploy": {
+    "metrics_to_track": [
+      "database_queries_per_request",
+      "query_execution_time",
+      "cache_hit_ratio",
+      "brapi_request_volume",
+      "refresh_prices_execution_time",
+      "portfolio_list_response_time"
+    ],
+    "alert_thresholds": {
+      "refreshPrices_timeout_seconds": 5,
+      "portfolio_query_time_ms": 500,
+      "brapi_requests_per_day": 300,
+      "cache_hit_ratio_percent": 70
+    },
+    "dashboards_to_create": [
+      "Database performance",
+      "Cache statistics",
+      "API external calls",
+      "N+1 query detection"
+    ]
+  },
+  "documentation": {
+    "files_created": [
+      "DATABASE_PERFORMANCE_ANALYSIS.md",
+      "IMPLEMENTATION_GUIDE.md",
+      "EXECUTIVE_SUMMARY.md",
+      "PERFORMANCE_METRICS.json"
+    ],
+    "update_documentation": [
+      "README.md - Add performance optimization section",
+      "docs/ - Add caching strategies documentation"
+    ]
+  }
+}

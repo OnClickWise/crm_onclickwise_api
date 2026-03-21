@@ -7,6 +7,7 @@ import {
   Req,
   Body,
   BadRequestException,
+  PayloadTooLargeException,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OrganizationService } from './organization.service';
@@ -106,6 +107,13 @@ export class OrganizationController {
         logo_url: logoUrl,
       };
     } catch (error) {
+      if (
+        error?.code === 'FST_REQ_FILE_TOO_LARGE' ||
+        error?.message?.includes('File too large')
+      ) {
+        throw new PayloadTooLargeException('Arquivo muito grande (máx 5MB)');
+      }
+
       if (error instanceof BadRequestException) {
         throw error;
       }
