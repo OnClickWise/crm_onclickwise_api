@@ -16,7 +16,10 @@ export class ProjectService {
   async getProjectById(id: string | number, user: any) {
     try {
       const project = await this.knex('projects')
-        .where({ id: String(id), owner_id: user.userId })
+        .join('users as owner', 'owner.id', 'projects.owner_id')
+        .where('projects.id', String(id))
+        .andWhere('owner.organization_id', user.organizationId)
+        .select('projects.*')
         .first();
       return project || null;
     } catch (error) {
@@ -29,8 +32,23 @@ export class ProjectService {
    */
   async listProjects(user: any) {
     return await this.knex('projects')
-      .where({ owner_id: user.userId })
+      .join('users as owner', 'owner.id', 'projects.owner_id')
+      .where('owner.organization_id', user.organizationId)
+      .select('projects.*')
       .orderBy('created_at', 'desc');
+  }
+
+  async listOrganizationUsers(user: any, includeMaster = false) {
+    const query = this.knex('users')
+      .where({ organization_id: user.organizationId })
+      .select('id', 'name', 'email', 'role', 'created_at')
+      .orderBy('name', 'asc');
+
+    if (!includeMaster) {
+      query.whereNot({ role: 'master' });
+    }
+
+    return query;
   }
 
   /**

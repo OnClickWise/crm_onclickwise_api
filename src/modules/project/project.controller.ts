@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '../../modules/auth/jwt-auth.guard';
 import { GetProjectByIdUseCase } from '../../use-cases/project/getProjectById.useCase';
 import { UpdateProjectUseCase } from '../../use-cases/project/updateProject.useCase';
 import { DeleteProjectUseCase } from '../../use-cases/project/deleteProject.useCase';
+import { ProjectService } from './services/project.service';
 
 @Controller('projects')
 export class ProjectController {
@@ -14,7 +15,16 @@ export class ProjectController {
     private getProjectById: GetProjectByIdUseCase,
     private updateProject: UpdateProjectUseCase,
     private deleteProject: DeleteProjectUseCase,
+    private projectService: ProjectService,
   ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('available-users')
+  async getAvailableUsers(@Request() req: any) {
+    const users = await this.projectService.listOrganizationUsers(req.user);
+    return { success: true, users };
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get(':id')
   async getById(@Param('id') id: string, @Request() req: any) {
