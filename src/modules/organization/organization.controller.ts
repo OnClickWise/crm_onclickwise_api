@@ -8,9 +8,11 @@ import {
   Body,
   BadRequestException,
   PayloadTooLargeException,
+  Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { OrganizationService } from './organization.service';
+import { env } from '@/shared/config/env';
 import { randomUUID } from 'crypto';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
@@ -18,6 +20,7 @@ import { existsSync } from 'fs';
 
 @Controller('organization')
 export class OrganizationController {
+  private readonly logger = new Logger(OrganizationController.name);
   constructor(private readonly organizationService: OrganizationService) {}
 
   @Get('user-organization')
@@ -83,10 +86,11 @@ export class OrganizationController {
         throw new BadRequestException('Arquivo muito grande (máx 5MB)');
       }
 
-      // Criar pasta uploads/logos se não existir
-      const uploadsDir = join(process.cwd(), 'uploads', 'logos');
+      // Usar variável de ambiente UPLOADS_DIR (configurável em produção)
+      const uploadsDir = join(env.UPLOADS_DIR, 'logos');
       if (!existsSync(uploadsDir)) {
         await mkdir(uploadsDir, { recursive: true });
+        this.logger.log(`Diretório criado: ${uploadsDir}`);
       }
 
       // Gerar nome único para o arquivo
@@ -96,6 +100,7 @@ export class OrganizationController {
 
       // Salvar arquivo
       await writeFile(filePath, buffer);
+      this.logger.log(`Logo salvo: ${filePath}`);
 
       // Atualizar logo_url no banco
       const organizationId = req.user.organizationId;
@@ -107,6 +112,8 @@ export class OrganizationController {
         logo_url: logoUrl,
       };
     } catch (error) {
+      this.logger.error(`Erro ao fazer upload do logo: ${error.message}`);
+      
       if (
         error?.code === 'FST_REQ_FILE_TOO_LARGE' ||
         error?.message?.includes('File too large')
