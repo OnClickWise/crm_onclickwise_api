@@ -11,23 +11,24 @@ import {
   Logger,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { OrganizationService } from './organization.service';
-import { env } from '@/shared/config/env';
-import { randomUUID } from 'crypto';
-import { writeFile, mkdir } from 'fs/promises';
-import { join } from 'path';
-import { existsSync } from 'fs';
+import { GetUserOrganizationUseCase } from '@/use-cases/organization/get-user-organization.useCase';
+import { UpdateOrganizationUseCase } from '@/use-cases/organization/update-organization.useCase';
+import { UploadOrganizationLogoUseCase } from '@/use-cases/organization/upload-organization-logo.useCase';
 
 @Controller('organization')
 export class OrganizationController {
   private readonly logger = new Logger(OrganizationController.name);
-  constructor(private readonly organizationService: OrganizationService) {}
+  constructor(
+    private readonly getUserOrganizationUseCase: GetUserOrganizationUseCase,
+    private readonly updateOrganizationUseCase: UpdateOrganizationUseCase,
+    private readonly uploadOrganizationLogoUseCase: UploadOrganizationLogoUseCase,
+  ) {}
 
   @Get('user-organization')
   @UseGuards(JwtAuthGuard)
   async getUserOrganization(@Req() req) {
     try {
-      const organization = await this.organizationService.findByUserId(
+      const organization = await this.getUserOrganizationUseCase.execute(
         req.user.userId,
       );
       return {
@@ -47,7 +48,7 @@ export class OrganizationController {
   async updateOrganization(@Req() req, @Body() body: any) {
     try {
       const organizationId = req.user.organizationId;
-      const updatedOrganization = await this.organizationService.update(
+      const updatedOrganization = await this.updateOrganizationUseCase.execute(
         organizationId,
         body,
       );
@@ -67,50 +68,8 @@ export class OrganizationController {
   @UseGuards(JwtAuthGuard)
   async uploadLogo(@Req() req) {
     try {
-      // Obter o arquivo do multipart
       const data = await req.file();
-      
-      if (!data) {
-        throw new BadRequestException('Arquivo não enviado');
-      }
-
-      // Validar tipo de arquivo
-      const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-      if (!allowedMimeTypes.includes(data.mimetype)) {
-        throw new BadRequestException('Tipo de arquivo inválido');
-      }
-
-      // Validar tamanho (max 5MB)
-      const buffer = await data.toBuffer();
-      if (buffer.length > 5 * 1024 * 1024) {
-        throw new BadRequestException('Arquivo muito grande (máx 5MB)');
-      }
-
-      // Usar variável de ambiente UPLOADS_DIR (configurável em produção)
-      const uploadsDir = join(env.UPLOADS_DIR, 'logos');
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
-        this.logger.log(`Diretório criado: ${uploadsDir}`);
-      }
-
-      // Gerar nome único para o arquivo
-      const ext = data.filename.split('.').pop();
-      const uniqueFilename = `${randomUUID()}.${ext}`;
-      const filePath = join(uploadsDir, uniqueFilename);
-
-      // Salvar arquivo
-      await writeFile(filePath, buffer);
-      this.logger.log(`Logo salvo: ${filePath}`);
-
-      // Atualizar logo_url no banco
-      const organizationId = req.user.organizationId;
-      const logoUrl = `/uploads/logos/${uniqueFilename}`;
-      await this.organizationService.updateLogo(organizationId, logoUrl);
-
-      return {
-        success: true,
-        logo_url: logoUrl,
-      };
+      return this.uploadOrganizationLogoUseCase.execute(req.user.organizationId, data);
     } catch (error) {
       this.logger.error(`Erro ao fazer upload do logo: ${error.message}`);
       

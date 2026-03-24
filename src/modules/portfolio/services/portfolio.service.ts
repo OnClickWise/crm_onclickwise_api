@@ -166,4 +166,35 @@ export class PortfolioService {
 
     return { success: true };
   }
+
+  async deletePortfolioCascade(id: string, user: any) {
+    const { organizationId, userId } = this.getScope(user);
+
+    const deleted = await this.knex.transaction(async (trx) => {
+      const visibilityQuery = trx('portfolios')
+        .where({ id, organization_id: organizationId });
+
+      this.applyPortfolioVisibility(visibilityQuery, user, userId, 'user_id');
+
+      const existing = await visibilityQuery.first('id');
+      if (!existing) {
+        return 0;
+      }
+
+      const deleteQuery = trx('portfolios')
+        .where({ id, organization_id: organizationId });
+
+      this.applyPortfolioVisibility(deleteQuery, user, userId, 'user_id');
+
+      await deleteQuery.delete();
+      return 1;
+    });
+
+    if (!deleted) {
+      throw new NotFoundException('Carteira não encontrada');
+    }
+
+    // A remoção de investimentos/contribuições/dividendos ocorre via FKs com ON DELETE CASCADE.
+    return { success: true, cascade: true };
+  }
 }

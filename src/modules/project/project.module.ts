@@ -7,6 +7,7 @@ import { GetProjectByIdUseCase } from '../../use-cases/project/getProjectById.us
 import { UpdateProjectUseCase } from '../../use-cases/project/updateProject.useCase';
 import { DeleteProjectUseCase } from '../../use-cases/project/deleteProject.useCase';
 import { ProjectService } from './services/project.service';
+import { ListProjectAvailableUsersUseCase } from '@/use-cases/project/list-project-available-users.useCase';
 
 @Module({
   imports: [DatabaseModule],
@@ -17,6 +18,7 @@ import { ProjectService } from './services/project.service';
     GetProjectByIdUseCase,
     UpdateProjectUseCase,
     DeleteProjectUseCase,
+    ListProjectAvailableUsersUseCase,
     ProjectService,
   ],
 })

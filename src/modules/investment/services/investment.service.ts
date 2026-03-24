@@ -438,71 +438,51 @@ export class InvestmentService {
       return { updated: 0 };
     }
 
-    // Construir query CASE WHEN para atualização em batch
     const now = new Date();
-    let updateQuery = this.knex('investments').where('id', '!=', null); // Placeholder para enable WHERE
+    const updateRows = investmentsToUpdate.map((inv) => {
+      const price = prices.get(String(inv.asset_name).toUpperCase()) || 0;
+      const metrics = this.calculateMetrics({
+        quantity: Number(inv.quantity),
+        averagePrice: Number(inv.average_price),
+        currentPrice: price,
+        totalInvested: Number(inv.total_invested),
+      });
 
-    // Construir CASE statements para cada coluna
-    const idList = investmentsToUpdate.map((inv) => inv.id);
+      return {
+        id: inv.id,
+        currentPrice: metrics.currentPrice,
+        currentValue: metrics.currentValue,
+        profit: metrics.profit,
+        profitPercentage: metrics.profitPercentage,
+      };
+    });
 
-    // Preparar dados para UPDATE com CASE
-    const currentPriceCases = investmentsToUpdate
-      .map((inv) => {
-        const price = prices.get(String(inv.asset_name).toUpperCase());
-        return `WHEN '${inv.id}' THEN ${price}`;
-      })
-      .join(' ');
+    const valuesClause = updateRows.map(() => '(?, ?, ?, ?, ?)').join(', ');
+    const bindings: Array<string | number | Date> = [];
 
-    const updateData: any = {
-      updated_at: now,
-    };
+    for (const row of updateRows) {
+      bindings.push(row.id, row.currentPrice, row.currentValue, row.profit, row.profitPercentage);
+    }
 
-    // Build update object com CASE WHEN para current_price
-    const currentPriceCase = investmentsToUpdate
-      .map((inv) => {
-        const price = prices.get(String(inv.asset_name).toUpperCase());
-        return { id: inv.id, price: price || 0 };
-      })
-      .reduce((acc, item) => {
-        acc[item.id] = item.price;
-        return acc;
-      }, {} as Record<string, number>);
-
-    // Batch update usando raw SQL para máxima performance
-    const updateStatement = investmentsToUpdate
-      .map((inv) => {
-        const price = prices.get(String(inv.asset_name).toUpperCase()) || 0;
-        const quantity = Number(inv.quantity);
-        const totalInvested = Number(inv.total_invested);
-        const currentValue = quantity * price;
-        const profit = currentValue - totalInvested;
-        const profitPercentage = totalInvested > 0 ? (profit / totalInvested) * 100 : 0;
-
-        return `UPDATE investments SET current_price = ${price}, current_value = ${currentValue}, profit = ${profit}, profit_percentage = ${profitPercentage}, updated_at = '${now.toISOString()}' WHERE id = '${inv.id}';`;
-      })
-      .join('\n');
+    bindings.push(now);
 
     try {
-      // Executar como transaction para atomicidade
-      await this.knex.transaction(async (trx) => {
-        for (const inv of investmentsToUpdate) {
-          const price = prices.get(String(inv.asset_name).toUpperCase()) || 0;
-          const metrics = this.calculateMetrics({
-            quantity: Number(inv.quantity),
-            averagePrice: Number(inv.average_price),
-            currentPrice: price,
-            totalInvested: Number(inv.total_invested),
-          });
-
-          await trx('investments').where({ id: inv.id }).update({
-            current_price: metrics.currentPrice,
-            current_value: metrics.currentValue,
-            profit: metrics.profit,
-            profit_percentage: metrics.profitPercentage,
-            updated_at: now,
-          });
-        }
-      });
+      await this.knex.raw(
+        `
+          UPDATE investments AS inv
+          SET
+            current_price = vals.current_price,
+            current_value = vals.current_value,
+            profit = vals.profit,
+            profit_percentage = vals.profit_percentage,
+            updated_at = ?
+          FROM (
+            VALUES ${valuesClause}
+          ) AS vals(id, current_price, current_value, profit, profit_percentage)
+          WHERE inv.id = vals.id::uuid
+        `,
+        [...bindings.slice(-1), ...bindings.slice(0, -1)],
+      );
 
       this.logger.log(`✓ ${investmentsToUpdate.length} investimentos atualizados com sucesso`);
       return { updated: investmentsToUpdate.length };

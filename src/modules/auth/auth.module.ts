@@ -14,6 +14,10 @@ import { RefreshUseCase } from '@/use-cases/auth/refresh-token.useCase';
 import { LogoutUseCase } from '@/use-cases/auth/logout.useCase';
 import { RefreshTokenRepository } from './repositories/refresh-token.repository';
 import { GetProfileUseCase } from '@/use-cases/auth/get-profile.useCase';
+import { GetEmployeesUseCase } from '@/use-cases/auth/get-employees.useCase';
+import { CreateEmployeeUseCase } from '@/use-cases/auth/create-employee.useCase';
+import { UpdateEmployeeUseCase } from '@/use-cases/auth/update-employee.useCase';
+import { DeleteEmployeeUseCase } from '@/use-cases/auth/delete-employee.useCase';
 
 @Module({
   imports: [DatabaseModule],
@@ -24,6 +28,10 @@ import { GetProfileUseCase } from '@/use-cases/auth/get-profile.useCase';
     RefreshUseCase,
     GetProfileUseCase,
     LogoutUseCase,
+    GetEmployeesUseCase,
+    CreateEmployeeUseCase,
+    UpdateEmployeeUseCase,
+    DeleteEmployeeUseCase,
     {
       provide: RefreshTokenRepository,
       useClass: RefreshTokenRepository,

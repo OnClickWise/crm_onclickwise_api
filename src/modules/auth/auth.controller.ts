@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, Get, Put, Delete, Query, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get, Put, Delete, Query } from '@nestjs/common';
 import { LoginUseCase } from '@/use-cases/auth/login.useCase';
 import { RegisterUseCase } from '@/use-cases/auth/register.useCase';
 import { LoginDto } from './dtos/login.dto';
@@ -7,8 +7,10 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { LogoutUseCase } from '@/use-cases/auth/logout.useCase';
 import { RefreshUseCase } from '@/use-cases/auth/refresh-token.useCase';
 import { GetProfileUseCase } from '@/use-cases/auth/get-profile.useCase';
-import { IUserRepository } from './repositories/interface/user.repository.interface';
-import * as bcrypt from 'bcrypt';
+import { GetEmployeesUseCase } from '@/use-cases/auth/get-employees.useCase';
+import { CreateEmployeeUseCase } from '@/use-cases/auth/create-employee.useCase';
+import { UpdateEmployeeUseCase } from '@/use-cases/auth/update-employee.useCase';
+import { DeleteEmployeeUseCase } from '@/use-cases/auth/delete-employee.useCase';
 
 @Controller('auth')
 export class AuthController {
@@ -18,7 +20,10 @@ export class AuthController {
     private refreshUseCase: RefreshUseCase,
     private getProfileUseCase: GetProfileUseCase,
     private logoutUseCase: LogoutUseCase,
-    private userRepository: IUserRepository,
+    private getEmployeesUseCase: GetEmployeesUseCase,
+    private createEmployeeUseCase: CreateEmployeeUseCase,
+    private updateEmployeeUseCase: UpdateEmployeeUseCase,
+    private deleteEmployeeUseCase: DeleteEmployeeUseCase,
   ) {}
 
   @Post('login')
@@ -51,80 +56,24 @@ export class AuthController {
   @Get('employees')
   @UseGuards(JwtAuthGuard)
   async getEmployees(@Req() req, @Query('include_master') includeMaster: string) {
-    const employees = await this.userRepository.findByOrganizationId(
-      req.user.organizationId,
-      includeMaster === 'true',
-    );
-    return { success: true, employees };
+    return this.getEmployeesUseCase.execute(req.user.organizationId, includeMaster === 'true');
   }
 
   @Post('create-employee')
   @UseGuards(JwtAuthGuard)
   async createEmployee(@Req() req, @Body() body: { name: string; email: string; password: string; role: string }) {
-    if (!body.name || !body.email || !body.password) {
-      throw new BadRequestException('name, email e password são obrigatórios');
-    }
-
-    const existing = await this.userRepository.findByEmail(body.email);
-    if (existing) {
-      throw new BadRequestException('E-mail já cadastrado');
-    }
-
-    const hashedPassword = await bcrypt.hash(body.password, 10);
-    const user = await this.userRepository.create({
-      name: body.name,
-      email: body.email,
-      password: hashedPassword,
-      organizationId: req.user.organizationId,
-      role: body.role || 'employee',
-    });
-
-    return {
-      success: true,
-      employee: {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        created_at: user.created_at,
-      },
-    };
+    return this.createEmployeeUseCase.execute(req.user.organizationId, body);
   }
 
   @Put('update-employee')
   @UseGuards(JwtAuthGuard)
   async updateEmployee(@Req() req, @Body() body: { id: string; name?: string; email?: string; role?: string }) {
-    if (!body.id) {
-      throw new BadRequestException('id é obrigatório');
-    }
-
-    const existing = await this.userRepository.findById(body.id);
-    if (!existing || existing.organization_id !== req.user.organizationId) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    const updated = await this.userRepository.update(body.id, {
-      name: body.name,
-      email: body.email,
-      role: body.role,
-    });
-
-    return { success: true, employee: updated };
+    return this.updateEmployeeUseCase.execute(req.user.organizationId, body);
   }
 
   @Delete('delete-employee')
   @UseGuards(JwtAuthGuard)
   async deleteEmployee(@Req() req, @Body() body: { id: string }) {
-    if (!body.id) {
-      throw new BadRequestException('id é obrigatório');
-    }
-
-    const existing = await this.userRepository.findById(body.id);
-    if (!existing || existing.organization_id !== req.user.organizationId) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    await this.userRepository.deleteById(body.id);
-    return { success: true };
+    return this.deleteEmployeeUseCase.execute(req.user.organizationId, body);
   }
 }
