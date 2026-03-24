@@ -1,4 +1,4 @@
-﻿import { Controller, Post, Get, Put, Delete, Param, Body, Query, UseGuards, Request } from '@nestjs/common';
+﻿import { Controller, Post, Get, Put, Delete, Param, Body, Query, UseGuards, Request, BadRequestException } from '@nestjs/common';
 import { CreateCardUseCase } from '@/use-cases/card/createCard.useCase';
 import { ListCardsUseCase } from '@/use-cases/card/listCards.useCase';
 import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
@@ -42,7 +42,17 @@ export class CardController {
 
   @UseGuards(JwtAuthGuard)
   @Get()
-  async list(@Query('listId') listId: string, @Request() req: any) {
-    return this.listCards.execute(listId, req.user);
+  async list(
+    @Query('listId') listId: string,
+    @Query('columnId') columnId: string,
+    @Request() req: any,
+  ) {
+    const resolvedListId = listId || columnId;
+
+    if (!resolvedListId) {
+      throw new BadRequestException('Parâmetro obrigatório: listId (ou columnId)');
+    }
+
+    return this.listCards.execute(resolvedListId, req.user);
   }
 }
