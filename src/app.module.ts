@@ -17,6 +17,7 @@ import { ContributionModule } from './modules/contribution/contribution.module';
 import { FinancialFlowModule } from './modules/financial-flow/financial-flow.module';
 import { DividendModule } from './modules/dividend/dividend.module';
 import { GoalModule } from './modules/goal/goal.module';
+import { InvestorModule } from './modules/investor/investor.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { GoalModule } from './modules/goal/goal.module';
     FinancialFlowModule,
     DividendModule,
     GoalModule,
+    InvestorModule,
   ],
   controllers: [],
   providers: [],
