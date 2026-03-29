@@ -19,6 +19,7 @@ import { DividendModule } from './modules/dividend/dividend.module';
 import { GoalModule } from './modules/goal/goal.module';
 import { InvestorModule } from './modules/investor/investor.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { UploadsModule } from './modules/uploads/uploads.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { ChatModule } from './modules/chat/chat.module';
     GoalModule,
     InvestorModule,
     ChatModule,
+    UploadsModule,
   ],
   controllers: [],
   providers: [],

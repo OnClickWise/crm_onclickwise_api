@@ -8,8 +8,6 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { APP_CORS_ORIGINS_ALLOWED } from './shared/config/config';
 import { env } from './shared/config/env';
 import contentParser from '@fastify/multipart';
-import fastifyStatic from '@fastify/static';
-import { join } from 'path';
 import { mkdir, access, constants } from 'fs/promises';
 import { existsSync } from 'fs';
 
@@ -65,26 +63,13 @@ async function bootstrap() {
     ],
   });
 
-  // CSP Header + CORS para arquivos estáticos (registrar ANTES do fastifyStatic)
+  // CSP Header
   app.register(async (app) => {
     app.addHook('onRequest', async (req, res) => {
-      // CSP Header para todos os requests
       res.header(
         'Content-Security-Policy',
         "default-src 'self'; media-src 'self' data: blob: https://api.onclickwise.com.br https://onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
       );
-
-      // CORS para /uploads/ (caso o enableCors não funcione para static files)
-      if (req.url.startsWith('/uploads/')) {
-        const origin = req.headers.origin as string;
-        if (origin && origins.includes(origin)) {
-          res.header('Access-Control-Allow-Origin', origin);
-          res.header('Access-Control-Allow-Credentials', 'true');
-          res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-          res.header('Accept-Ranges', 'bytes');
-          res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
-        }
-      }
     });
   });
 
@@ -115,12 +100,6 @@ async function bootstrap() {
   } catch (error) {
     logger.error(`✗ Erro ao configurar diretório de uploads: ${error.message}`);
   }
-
-  // --- SERVIR ARQUIVOS ESTÁTICOS ---
-  await app.register(fastifyStatic, {
-    root: uploadsDir,
-    prefix: '/uploads/',
-  });
 
   const port = Number(process.env.APP_PORT) || 8080;
   await app.listen({
