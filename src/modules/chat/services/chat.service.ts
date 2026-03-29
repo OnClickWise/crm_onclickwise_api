@@ -330,6 +330,7 @@ export class ChatService {
   /**
    * Envia uma mensagem de áudio (gravação de voz)
    * O arquivo é armazenado em /uploads/chat-messages/ com nome baseado no messageId
+   * URL pública: /api/uploads/chat-messages/ (endpoint com CORS)
    * Suporta formatos wie .m4a, .wav, .mp3, etc
    *
    * @param channelId - ID do canal
@@ -378,7 +379,7 @@ export class ChatService {
     await writeFile(filePath, buffer);
 
     // 4. Construir URL pública
-    const audioUrl = `/uploads/chat-messages/${generatedName}`;
+    const audioUrl = `/api/uploads/chat-messages/${generatedName}`;
 
     // 5. Criar mensagem com tipo 'audio'
     const createdMessage = await this.createMessage({
@@ -425,7 +426,7 @@ export class ChatService {
     const filePath = join(dirPath, generatedName);
     await writeFile(filePath, buffer);
 
-    const fileUrl = `/uploads/chat/${organizationId}/${channelId}/${generatedName}`;
+    const fileUrl = `/api/uploads/chat/${organizationId}/${channelId}/${generatedName}`;
     const isAudio = String(file.mimetype || '').startsWith('audio/');
 
     return this.createMessage({

@@ -6,7 +6,7 @@ import { env } from '@/shared/config/env';
 
 @Controller('uploads')
 export class UploadsController {
-  @Get('/:type/:filename')
+  @Get(':type/:filename')
   async serveFile(
     @Param('type') type: string,
     @Param('filename') filename: string,
@@ -28,6 +28,42 @@ export class UploadsController {
     if (!existsSync(filePath)) {
       throw new NotFoundException('Arquivo não encontrado');
     }
+
+    return this.serveFileResponse(filePath, filename, res);
+  }
+
+  // Rota para arquivos aninhados: /api/uploads/chat/:organizationId/:channelId/:filename
+  @Get('chat/:organizationId/:channelId/:filename')
+  async serveChatFile(
+    @Param('organizationId') organizationId: string,
+    @Param('channelId') channelId: string,
+    @Param('filename') filename: string,
+    @Res() res: FastifyReply,
+  ) {
+    // Validar IDs - previne path traversal
+    if (
+      organizationId.includes('..') ||
+      organizationId.includes('/') ||
+      channelId.includes('..') ||
+      channelId.includes('/') ||
+      filename.includes('..') ||
+      filename.includes('/') ||
+      filename.includes('\\')
+    ) {
+      throw new BadRequestException('Formato inválido');
+    }
+
+    const filePath = join(env.UPLOADS_DIR, 'chat', organizationId, channelId, filename);
+
+    // Verificar se arquivo existe
+    if (!existsSync(filePath)) {
+      throw new NotFoundException('Arquivo não encontrado');
+    }
+
+    return this.serveFileResponse(filePath, filename, res);
+  }
+
+  private async serveFileResponse(filePath: string, filename: string, res: FastifyReply) {
 
     // Determinar MIME type baseado na extensão
     const ext = filename.split('.').pop()?.toLowerCase() || '';

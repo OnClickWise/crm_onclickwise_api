@@ -62,7 +62,7 @@ export class UploadOrganizationLogoUseCase {
       const fileSize = statSync(filePath).size;
       this.logger.log(`[UPLOAD] ✓ Arquivo salvo com sucesso. Tamanho: ${fileSize} bytes. Path: ${filePath}`);
 
-      const logoUrl = `/uploads/logos/${uniqueFilename}`;
+      const logoUrl = `/api/uploads/logos/${uniqueFilename}`;
       await this.organizationService.updateLogo(organizationId, logoUrl);
 
       this.logger.log(`[UPLOAD] ✓ Logo URL salva no banco: ${logoUrl}`);
