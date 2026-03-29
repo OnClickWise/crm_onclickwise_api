@@ -3,6 +3,7 @@ import type { ILeadRepository } from '@/modules/leads/repositories/interface/lea
 import { CreateLeadDto } from '@/modules/leads/dtos/create.lead.dto';
 import { LeadEntity } from '@/modules/leads/entities/lead.entity';
 import { AuthPayload } from '@/modules/auth/entities/auth/auth.entity';
+
 @Injectable()
 export class CreateLeadUseCase {
   constructor(
@@ -10,29 +11,44 @@ export class CreateLeadUseCase {
     private readonly leadRepository: ILeadRepository,
   ) {}
 
-  async execute(user_data: AuthPayload, data: CreateLeadDto): Promise<{lead:LeadEntity}> {
-    // 1. Regra de Negócio: Verificar se já existe um lead com o mesmo email nesta organização
+  async execute(user_data: AuthPayload | string, data: CreateLeadDto): Promise<{lead:LeadEntity}> {
+    // Handle both AuthPayload and string (organizationId)
+    let organizationId: string;
+    let assignedUserId: string | undefined;
 
+    if (typeof user_data === 'string') {
+      // Public form submission - only has organizationId as string
+      organizationId = user_data;
+      assignedUserId = undefined;
+    } else {
+      // Authenticated request - has full AuthPayload
+      organizationId = user_data.organizationId;
+      assignedUserId = user_data.userId;
+    }
+
+    // Use organization_id from DTO if provided, otherwise use from user_data
+    if (data.organization_id) {
+      organizationId = data.organization_id;
+    }
+
+    // 1. Verificar se já existe um lead com o mesmo email nesta organização
     const existingLeads = await this.leadRepository.findByEmail(
       data.email, 
-      user_data.organizationId 
+      organizationId 
     );
 
     if (existingLeads != undefined) {
       throw new BadRequestException('Um lead com este email já está cadastrado nesta organização.');
     }
 
-    // 2. Criar a entidade (usando o modelo que definimos anteriormente)
-    // Passamos o organizationId que geralmente vem do Token do usuário logado
-    const assignedUserId = user_data.userId;
-    const organization_id = user_data.organizationId
-
+    // 2. Criar a entidade
     const lead = new LeadEntity({
       ...data,
-      organization_id,
+      organization_id: organizationId,
       assignedUserId,
-      status: 'New',
+      status: data.status || 'New',
     });
+    
     const newLead = await this.leadRepository.create(lead);
     return {
       lead: newLead

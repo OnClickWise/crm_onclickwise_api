@@ -65,8 +65,8 @@ async function bootstrap() {
 
   // CSP Header
   app.register(async (app) => {
-    app.addHook('onRequest', async (req, res) => {
-      res.header(
+    app.addHook('onRequest', async (req, reply) => {
+      reply.header(
         'Content-Security-Policy',
         "default-src 'self'; media-src 'self' data: blob: https://api.onclickwise.com.br https://onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
       );
