@@ -314,4 +314,47 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { success: false, error: error?.message || 'Falha ao enviar mensagem' };
     }
   }
+
+  @SubscribeMessage('message:audio')
+  async onAudioMessage(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() body: { channelId: string; audioUrl: string; mimeType: string; size: number },
+  ) {
+    try {
+      const user = this.getSocketUser(client);
+
+      if (!body?.channelId || !body?.audioUrl) {
+        return { success: false, error: 'Audio invalido' };
+      }
+
+      const message = await this.chatService.sendMessage(
+        body.channelId,
+        {
+          body: '🎙️ Mensagem de voz',
+          metadata: {
+            kind: 'audio',
+            audioUrl: body.audioUrl,
+            mimeType: body.mimeType || 'audio/mp4',
+            size: body.size || 0,
+          },
+        },
+        user,
+      );
+
+      const room = this.getRoomName(user.organizationId, body.channelId);
+      this.server.to(room).emit('message:new', message);
+
+      const onlineCount = this.channelPresence.get(room)?.size || 0;
+      this.logger.debug(
+        `WS audio:new user=${user.userId} channel=${body.channelId} room=${room} online=${onlineCount} message=${message.id}`,
+      );
+
+      return { success: true, message };
+    } catch (error) {
+      this.logger.error(
+        `WS audio falhou: socket=${client.id} channel=${body?.channelId || 'n/a'} erro=${error?.message || 'erro desconhecido'}`,
+      );
+      return { success: false, error: error?.message || 'Falha ao enviar audio' };
+    }
+  }
 }

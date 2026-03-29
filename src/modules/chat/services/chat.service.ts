@@ -302,7 +302,12 @@ export class ChatService {
     return messages.reverse();
   }
 
-  async sendMessage(channelId: string, data: { body: string }, user: any) {
+  async sendMessage(
+    channelId: string,
+    data: { body: string; metadata?: any },
+    user: any,
+    messageType: 'text' | 'audio' = 'text',
+  ) {
     const { organizationId, userId } = this.getScope(user);
 
     await this.ensureChannelAccess(channelId, user);
@@ -317,8 +322,8 @@ export class ChatService {
       channelId,
       senderUserId: userId,
       body,
-      messageType: 'text',
-      metadata: { kind: 'text' },
+      messageType,
+      metadata: data.metadata || { kind: messageType },
     });
   }
 
