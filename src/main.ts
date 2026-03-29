@@ -18,7 +18,6 @@ async function bootstrap() {
   const maxUploadBytes = maxUploadMb * 1024 * 1024;
   const uploadsDir = env.UPLOADS_DIR;
 
-  // Debug: Log environment setup to stderr (guaranteed capture)
   process.stderr.write(`[BOOTSTRAP_START] UPLOADS_DIR=${uploadsDir}\n`);
 
   const app = await NestFactory.create<NestFastifyApplication>(
@@ -51,26 +50,26 @@ async function bootstrap() {
     }
   }
 
-  // 👇 A MÁGICA DO CORS ENTRA AQUI 👇
+  // CORS Global
   app.enableCors({
     origin: origins,
-    credentials: true, // Isso aqui salva o Login!
+    credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: [
       'Content-Type',
       'Authorization',
       'x-tenant-id',
       'X-Requested-With',
-      'Accept'
+      'Accept',
+      'Range' // Adicionado Range aqui também
     ],
   });
-  // 👆 FIM DA MÁGICA DO CORS 👆
 
-  // Permitir media-src para áudio via CSP header
+  // CSP Header para permitir áudio
   app.use((req, res, next) => {
     res.setHeader( 
       'Content-Security-Policy',
-      "default-src 'self'; media-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+      "default-src 'self'; media-src 'self' data: blob: https://api.onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
     );
     next();
   });
@@ -86,56 +85,42 @@ async function bootstrap() {
  
   await app.register(contentParser, {
     limits: {
-      fieldNameSize: 50,      // Max field name size in bytes
-      fieldSize: 1024 * 1024, // Max field value size in bytes
-      fields: 1,              // Max number of non-file fields
+      fieldNameSize: 50,
+      fieldSize: 1024 * 1024,
+      fields: 1,
       fileSize: maxUploadBytes,
-      files: 1,                // Max number of file fields
-    },}
-  );
+      files: 1,
+    },
+  });
 
-  // Validar e criar diretório de uploads
   try {
-    process.stderr.write(`[UPLOADS_CHECK] Verificando diretório: ${uploadsDir}\n`);
-    
     if (!existsSync(uploadsDir)) {
-      process.stderr.write(`[UPLOADS_CREATE] Criando diretório...\n`);
       await mkdir(uploadsDir, { recursive: true });
-      process.stderr.write(`[UPLOADS_SUCCESS] Diretório criado: ${uploadsDir}\n`);
-      logger.log(`✓ Diretório de uploads criado: ${uploadsDir}`);
-    } else {
-      process.stderr.write(`[UPLOADS_EXISTS] Diretório já existe: ${uploadsDir}\n`);
     }
-
-    // Validar permissão de escrita
-    process.stderr.write(`[UPLOADS_PERM] Validando permissão de escrita...\n`);
     await access(uploadsDir, constants.W_OK);
-    process.stderr.write(`[UPLOADS_OK] Permissão validada\n`);
-    logger.log(`✓ Permissão de escrita validada: ${uploadsDir}`);
   } catch (error) {
-    process.stderr.write(`[UPLOADS_ERROR] ${error.message}\n`);
     logger.error(`✗ Erro ao configurar diretório de uploads: ${error.message}`);
-    logger.warn(`⚠ Uploads podem falhar em produção! Configure a variável UPLOADS_DIR para um volume persistente.`);
   }
 
-  // Servir arquivos estáticos da pasta uploads com cabeçalhos de CORS e Streaming de Áudio
+  // --- CONFIGURAÇÃO CORRIGIDA DOS ESTÁTICOS ---
   await app.register(fastifyStatic, {
     root: uploadsDir,
     prefix: '/uploads/',
     setHeaders: (res, path, stat) => {
-      // Libera o CORS para os arquivos estáticos
-      res.setHeader('Access-Control-Allow-Origin', '*');
+      // IMPORTANTE: Trocamos '*' pelo domínio exato por causa do credentials:true
+      res.setHeader('Access-Control-Allow-Origin', 'https://onclickwise.com.br');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Range');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Range, Authorization, x-tenant-id');
       
-      // Cabeçalhos essenciais para o player de áudio funcionar (Streaming/Partial Content 206)
+      // Essencial para Streaming de Áudio (Erro 206)
       res.setHeader('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Encoding, Content-Length, Content-Range');
       res.setHeader('Accept-Ranges', 'bytes');
+      
+      // Cache control para evitar que o navegador guarde erros de áudio
+      res.setHeader('Cache-Control', 'no-cache');
     },
   });
-
-  process.stderr.write(`[UPLOADS_SERVE] Servindo uploads de: ${uploadsDir}\n`);
-  logger.log(`📁 Servindo uploads de: ${uploadsDir}`);
 
   const port = Number(process.env.APP_PORT) || 8080;
   await app.listen({
@@ -143,11 +128,9 @@ async function bootstrap() {
     host: '0.0.0.0',
   });
   
-  process.stderr.write(`[API_READY] Iniciada na porta ${port}\n`);
   logger.log(`🚀 API iniciada na porta ${port}`);
 }
 
-process.stderr.write(`[BOOTSTRAP_INIT] Executando...\n`);
 bootstrap().catch(err => {
   process.stderr.write(`[BOOTSTRAP_FATAL] ${err.message}\n${err.stack}\n`);
   process.exit(1);
