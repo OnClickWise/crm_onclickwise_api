@@ -13,7 +13,6 @@ import { join } from 'path';
 import { mkdir, access, constants } from 'fs/promises';
 import { existsSync } from 'fs';
 
-
 async function bootstrap() {
   const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 25);
   const maxUploadBytes = maxUploadMb * 1024 * 1024;
@@ -52,6 +51,20 @@ async function bootstrap() {
     }
   }
 
+  // 👇 A MÁGICA DO CORS ENTRA AQUI 👇
+  app.enableCors({
+    origin: origins,
+    credentials: true, // Isso aqui salva o Login!
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'x-tenant-id',
+      'X-Requested-With',
+      'Accept'
+    ],
+  });
+  // 👆 FIM DA MÁGICA DO CORS 👆
 
   // Permitir media-src para áudio via CSP header
   app.use((req, res, next) => {
@@ -64,7 +77,6 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
