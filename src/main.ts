@@ -117,10 +117,20 @@ async function bootstrap() {
     logger.warn(`⚠ Uploads podem falhar em produção! Configure a variável UPLOADS_DIR para um volume persistente.`);
   }
 
-  // Servir arquivos estáticos da pasta uploads
+  // Servir arquivos estáticos da pasta uploads com cabeçalhos de CORS e Streaming de Áudio
   await app.register(fastifyStatic, {
     root: uploadsDir,
     prefix: '/uploads/',
+    setHeaders: (res, path, stat) => {
+      // Libera o CORS para os arquivos estáticos
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Range');
+      
+      // Cabeçalhos essenciais para o player de áudio funcionar (Streaming/Partial Content 206)
+      res.setHeader('Access-Control-Expose-Headers', 'Accept-Ranges, Content-Encoding, Content-Length, Content-Range');
+      res.setHeader('Accept-Ranges', 'bytes');
+    },
   });
 
   process.stderr.write(`[UPLOADS_SERVE] Servindo uploads de: ${uploadsDir}\n`);
