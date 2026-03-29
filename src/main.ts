@@ -55,9 +55,9 @@ async function bootstrap() {
 
   // Permitir media-src para áudio via CSP header
   app.use((req, res, next) => {
-    res.header(
+    res.setHeader( 
       'Content-Security-Policy',
-      "default-src 'self'; media-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;",
+      "default-src 'self'; media-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
     );
     next();
   });
