@@ -28,6 +28,18 @@ export class OrganizationService {
     return organization;
   }
 
+  async findBySlug(slug: string): Promise<any> {
+    const organization = await this.knex('organizations')
+      .where({ slug })
+      .first();
+
+    if (!organization) {
+      throw new NotFoundException('Organização não encontrada');
+    }
+
+    return organization;
+  }
+
   async update(organizationId: string, data: any): Promise<any> {
     const allowedFields = [
       'name',

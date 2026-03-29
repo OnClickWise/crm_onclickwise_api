@@ -11,6 +11,7 @@ import { GetEmployeesUseCase } from '@/use-cases/auth/get-employees.useCase';
 import { CreateEmployeeUseCase } from '@/use-cases/auth/create-employee.useCase';
 import { UpdateEmployeeUseCase } from '@/use-cases/auth/update-employee.useCase';
 import { DeleteEmployeeUseCase } from '@/use-cases/auth/delete-employee.useCase';
+import { OrganizationService } from '../organization/organization.service';
 
 @Controller('auth')
 export class AuthController {
@@ -24,11 +25,25 @@ export class AuthController {
     private createEmployeeUseCase: CreateEmployeeUseCase,
     private updateEmployeeUseCase: UpdateEmployeeUseCase,
     private deleteEmployeeUseCase: DeleteEmployeeUseCase,
+    private organizationService: OrganizationService,
   ) {}
 
   @Post('login')
   async login(@Body() body: LoginDto) {
     return this.loginUseCase.execute(body);
+  }
+
+  @Post('check-company-by-slug')
+  async checkCompanyBySlug(@Body() body: { slug: string }) {
+    const organization = await this.organizationService.findBySlug(body.slug);
+    return {
+      success: true,
+      company: {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+      },
+    };
   }
 
   @Get('me')

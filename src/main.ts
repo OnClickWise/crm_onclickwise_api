@@ -15,7 +15,7 @@ import { existsSync } from 'fs';
 
 
 async function bootstrap() {
-  const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 10);
+  const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 25);
   const maxUploadBytes = maxUploadMb * 1024 * 1024;
   const uploadsDir = env.UPLOADS_DIR;
 

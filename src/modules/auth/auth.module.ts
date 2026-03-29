@@ -18,9 +18,10 @@ import { GetEmployeesUseCase } from '@/use-cases/auth/get-employees.useCase';
 import { CreateEmployeeUseCase } from '@/use-cases/auth/create-employee.useCase';
 import { UpdateEmployeeUseCase } from '@/use-cases/auth/update-employee.useCase';
 import { DeleteEmployeeUseCase } from '@/use-cases/auth/delete-employee.useCase';
+import { OrganizationModule } from '../organization/organization.module';
 
 @Module({
-  imports: [DatabaseModule],
+  imports: [DatabaseModule, OrganizationModule],
   controllers: [AuthController],
   providers: [
     LoginUseCase,
