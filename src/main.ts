@@ -52,17 +52,6 @@ async function bootstrap() {
     }
   }
 
-  app.enableCors({
-    origin: origins,
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'x-tenant-id',
-      'X-Requested-With',
-    ],
-  });
 
   // Permitir media-src para áudio via CSP header
   app.use((req, res, next) => {
