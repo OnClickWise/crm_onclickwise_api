@@ -41,7 +41,7 @@ export class LeadsController {
   @Post('public')
   createPublic(@Body() body: any) {
     // Implementa a criação via formulário externo
-    return this.createLead.execute(body.data.organizationId,body);
+    return this.createLead.execute(body.organization_id, body);
   }
 
   // --- ROTAS PROTEGIDAS ---
