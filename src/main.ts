@@ -65,13 +65,26 @@ async function bootstrap() {
     ],
   });
 
-  // CSP Header - Ajustado para aceitar blob e a URL da API para mídia
+  // CSP Header + CORS para arquivos estáticos (registrar ANTES do fastifyStatic)
   app.register(async (app) => {
     app.addHook('onRequest', async (req, res) => {
+      // CSP Header para todos os requests
       res.header(
         'Content-Security-Policy',
-        "default-src 'self'; media-src 'self' data: blob: https://api.onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+        "default-src 'self'; media-src 'self' data: blob: https://api.onclickwise.com.br https://onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
       );
+
+      // CORS para /uploads/ (caso o enableCors não funcione para static files)
+      if (req.url.startsWith('/uploads/')) {
+        const origin = req.headers.origin as string;
+        if (origin && origins.includes(origin)) {
+          res.header('Access-Control-Allow-Origin', origin);
+          res.header('Access-Control-Allow-Credentials', 'true');
+          res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+          res.header('Accept-Ranges', 'bytes');
+          res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+        }
+      }
     });
   });
 
@@ -107,22 +120,6 @@ async function bootstrap() {
   await app.register(fastifyStatic, {
     root: uploadsDir,
     prefix: '/uploads/',
-  });
-
-  // Adicionar headers CORS e cache para arquivos estáticos
-  app.register(async (app) => {
-    app.addHook('onRequest', async (req, res) => {
-      if (req.url.startsWith('/uploads/')) {
-        const origin = req.headers.origin;
-        if (origins.includes(origin)) {
-          res.header('Access-Control-Allow-Origin', origin);
-        }
-        res.header('Access-Control-Allow-Credentials', 'true');
-        res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-        res.header('Accept-Ranges', 'bytes');
-        res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
-      }
-    });
   });
 
   const port = Number(process.env.APP_PORT) || 8080;
