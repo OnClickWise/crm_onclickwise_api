@@ -34,6 +34,10 @@ export class CreateLeadDto {
 
   @IsString()
   @IsOptional()
+  location?: string;
+
+  @IsString()
+  @IsOptional()
   status?: string;
 
   @IsString()

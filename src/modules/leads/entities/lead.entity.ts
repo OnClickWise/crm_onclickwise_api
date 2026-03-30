@@ -15,6 +15,8 @@ export class LeadEntity {
 
   // Controle
   source?: string;
+  location?: string;
+  interest?: string;
   status: string;
   pipelineId?: string;
   stageId?: string;
@@ -45,6 +47,8 @@ export class LeadEntity {
     this.ein = props.ein;
     
     this.source = props.source;
+    this.location = props.location;
+    this.interest = props.interest;
     
     this.status = props.status || 'New';
     

@@ -11,6 +11,6 @@ export class ListLeadsUseCase {
   
 
   async execute(organizationId: string) {
-    return this.leadRepository.findAll(organizationId);
+    return this.leadRepository.findAll({ organizationId });
   }
 }
