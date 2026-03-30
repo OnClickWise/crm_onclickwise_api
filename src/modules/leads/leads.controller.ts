@@ -66,9 +66,14 @@ searchByParams( @Query() allQueries: any) {
   }
 
 
+  @UseGuards(JwtAuthGuard)
   @Get()
-  list(@Query() params: any) {
-    return this.listLeads.execute(params);
+  list(@Req() req: any) {
+    const organizationId = req.user?.organizationId;
+    if (!organizationId) {
+      return { leads: [], error: 'No organization found in token' };
+    }
+    return this.listLeads.execute(organizationId);
   }
 
 
