@@ -49,7 +49,20 @@ export class CreateLeadUseCase {
       status: data.status || 'New',
     });
     
+    console.log('[CREATE_LEAD] Criando lead:', {
+      name: lead.name,
+      email: lead.email,
+      organization_id: lead.organization_id,
+      status: lead.status,
+    });
+    
     const newLead = await this.leadRepository.create(lead);
+    
+    console.log('[CREATE_LEAD] Lead criado com sucesso:', {
+      id: newLead.id,
+      organization_id: newLead.organization_id,
+    });
+    
     return {
       lead: newLead
     }
