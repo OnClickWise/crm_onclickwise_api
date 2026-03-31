@@ -62,6 +62,31 @@ export class PipelineStagesRepository {
       .delete();
   }
 
+  async deleteSafely(id: string, orgId: string) {
+    return this.knex.transaction(async (trx) => {
+      const leadColumns = await trx('information_schema.columns')
+        .select('column_name')
+        .where({ table_name: 'leads' });
+
+      const hasStageId = leadColumns.some((row: any) => String(row.column_name) === 'stage_id');
+
+      if (hasStageId) {
+        await trx('leads')
+          .where({ organization_id: orgId, stage_id: id })
+          .update({
+            stage_id: null,
+            updated_at: trx.fn.now(),
+          });
+      }
+
+      const deletedCount = await trx('pipeline_stages')
+        .where({ id, organization_id: orgId })
+        .delete();
+
+      return deletedCount;
+    });
+  }
+
   async getKanbanBoard(organizationId: string, filters: PipelineKanbanFilters = {}) {
     const [stages, leadColumnRows] = await Promise.all([
       this.findByOrg(organizationId),

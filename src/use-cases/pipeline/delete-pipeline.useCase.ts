@@ -12,6 +12,9 @@ export class DeletePipelineUseCase {
       throw new Error('Stage não encontrada');
     }
 
-    await this.repo.delete(id, organizationId);
+    const deletedCount = await this.repo.deleteSafely(id, organizationId);
+    if (!deletedCount) {
+      throw new Error('Falha ao excluir etapa');
+    }
   }
 }
