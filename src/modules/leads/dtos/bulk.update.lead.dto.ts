@@ -6,8 +6,8 @@ export class BulkUpdateLeadDto {
   lead_ids!: string[]; // Adicionado '!' pois é obrigatório
 
   @IsString()
-  @IsNotEmpty()
-  status!: string; // Adicionado '!' pois é obrigatório
+  @IsOptional()
+  status?: string; // Mantido opcional para bulk updates de pipeline
 
   @IsString()
   @IsOptional()
