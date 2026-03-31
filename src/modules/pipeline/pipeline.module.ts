@@ -9,6 +9,7 @@ import { DeletePipelineUseCase } from '@/use-cases/pipeline/delete-pipeline.useC
 import { ReorderPipelineUseCase } from '@/use-cases/pipeline/reoder-pipeline.useCase';
 import { CreateDefaultStagesUseCase } from '@/use-cases/pipeline/create-default-stages.useCase';
 import { DatabaseModule } from '@/shared/database/database.module';
+import { GetPipelineKanbanBoardUseCase } from '@/use-cases/pipeline/get-pipeline-kanban-board.useCase';
 
 @Module({
   imports: [DatabaseModule],
@@ -22,6 +23,7 @@ import { DatabaseModule } from '@/shared/database/database.module';
     DeletePipelineUseCase,
     ReorderPipelineUseCase,
     CreateDefaultStagesUseCase,
+    GetPipelineKanbanBoardUseCase,
   ],
 })
 export class PipelineModule {}

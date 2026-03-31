@@ -40,13 +40,6 @@ export class LeadsController {
 
   @Post('public')
   createPublic(@Body() body: any) {
-    // Implementa a criação via formulário externo
-    console.log('[LEADS_PUBLIC] Recebido:', {
-      organization_id: body.organization_id,
-      name: body.name,
-      email: body.email,
-      source: body.source,
-    });
     return this.createLead.execute(body.organization_id, body);
   }
 

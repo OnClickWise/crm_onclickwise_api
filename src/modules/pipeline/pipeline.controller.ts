@@ -1,13 +1,14 @@
 import { CreatePipelineUseCase } from '@/use-cases/pipeline/create-stage.useCase';
 import { ListPipelinesUseCase } from '@/use-cases/pipeline/list-pipeline.useCase';
 import { UpdatePipelineUseCase } from '@/use-cases/pipeline/update-pipeline.useCase';
-import { Controller, Post, Get, Body, Param, Patch, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Patch, Delete, UseGuards, Query } from '@nestjs/common';
 import { CreateStageDto } from './dtos/create-stage.dto';
 import { UpdateStageDto } from './dtos/update-stage.dto';
 import { DeletePipelineUseCase } from '@/use-cases/pipeline/delete-pipeline.useCase';
 import { ReorderPipelineUseCase } from '@/use-cases/pipeline/reoder-pipeline.useCase';
 import { GetPipelineUseCase } from '@/use-cases/pipeline/get-stage-pipeline.useCase';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { GetPipelineKanbanBoardUseCase } from '@/use-cases/pipeline/get-pipeline-kanban-board.useCase';
 
 @UseGuards(JwtAuthGuard)
 @Controller('pipeline-stages')
@@ -19,6 +20,7 @@ export class PipelineController {
     private getOne: GetPipelineUseCase,
     private remove: DeletePipelineUseCase,
     private reorder: ReorderPipelineUseCase,
+    private getKanbanBoard: GetPipelineKanbanBoardUseCase,
   ) {}
 
   @Post(':organizationId')
@@ -32,6 +34,14 @@ export class PipelineController {
   @Get(':organizationId')
   list(@Param('organizationId') organizationId: string) {
     return this.listPipelines.execute(organizationId);
+  }
+
+  @Get(':organizationId/kanban')
+  listKanbanBoard(
+    @Param('organizationId') organizationId: string,
+    @Query() query: { search?: string; assigned_user_id?: string; show_on_pipeline?: string; limit?: string },
+  ) {
+    return this.getKanbanBoard.execute(organizationId, query);
   }
 
   @Patch(':organizationId/:id')
