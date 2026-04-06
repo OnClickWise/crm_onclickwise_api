@@ -23,7 +23,7 @@ export interface ILeadRepository {
   update(id: string, data: UpdateLeadDto): Promise<LeadEntity>;
   
   // Operações em Massa (Pipeline)
-  updateBulkPipeline(data: BulkUpdateLeadDto): Promise<void>;
+  updateBulkPipeline(data: BulkUpdateLeadDto, organizationId?: string): Promise<void>;
 
   // Exclusão
   delete(id: string): Promise<void>;

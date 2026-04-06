@@ -109,6 +109,10 @@ export class LeadRepository implements ILeadRepository {
     if (data.name) updateData.name = data.name;
     if (data.status) updateData.status = data.status;
     if (data.assignedUserId !== undefined) updateData.assigned_user_id = data.assignedUserId;
+    if (data.assigned_user_id !== undefined) updateData.assigned_user_id = data.assigned_user_id;
+    if (data.show_on_pipeline !== undefined) updateData.show_on_pipeline = data.show_on_pipeline;
+    if (data.pipelineId !== undefined) updateData.pipeline_id = data.pipelineId;
+    if (data.stageId !== undefined) updateData.stage_id = data.stageId;
     if (data.value !== undefined) updateData.value = data.value;
     if (data.estimated_close_date) updateData.estimated_close_date = data.estimated_close_date;
     if (leadColumns.has('location') && data.location !== undefined) updateData.location = data.location;
@@ -190,16 +194,24 @@ export class LeadRepository implements ILeadRepository {
     return query;
   }
 
-  async updateBulkPipeline(data: BulkUpdateLeadDto): Promise<void> {
-    await this.knex(this.tableName)
-      .whereIn('id', data.lead_ids)
-      .update({
-        status: data.status,
-        pipeline_id: data.pipelineId,
-        stage_id: data.stageId,
-        show_on_pipeline: data.show_on_pipeline,
-        updated_at: new Date(),
-      });
+  async updateBulkPipeline(data: BulkUpdateLeadDto, organizationId?: string): Promise<void> {
+    const payload: any = {
+      updated_at: new Date(),
+    };
+
+    if (data.status !== undefined) payload.status = data.status;
+    if (data.pipelineId !== undefined) payload.pipeline_id = data.pipelineId;
+    if (data.stageId !== undefined) payload.stage_id = data.stageId;
+    if (data.show_on_pipeline !== undefined) payload.show_on_pipeline = data.show_on_pipeline;
+
+    const query = this.knex(this.tableName)
+      .whereIn('id', data.lead_ids);
+
+    if (organizationId) {
+      query.andWhere('organization_id', organizationId);
+    }
+
+    await query.update(payload);
   }
 
   async delete(id: string): Promise<void> {

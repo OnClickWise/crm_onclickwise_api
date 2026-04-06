@@ -11,13 +11,13 @@ export class BulkPipelineUseCase {
     private readonly leadRepository: ILeadRepository,
   ) {}
 
-  async execute(data: BulkUpdateLeadDto) {
+  async execute(data: BulkUpdateLeadDto, organizationId?: string) {
     
     // Validação de segurança: garantir que IDs foram fornecidos
     if (!data.lead_ids || data.lead_ids.length === 0) {
       throw new Error('No leads selected for bulk update');
     }
 
-    return await this.leadRepository.updateBulkPipeline(data);
+    return await this.leadRepository.updateBulkPipeline(data, organizationId);
   }
 }
