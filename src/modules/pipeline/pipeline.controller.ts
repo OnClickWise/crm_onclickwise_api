@@ -53,12 +53,12 @@ export class PipelineController {
     return this.createPipeline.execute(organizationId, body);
   }
 
-  @Get(':organizationId/:id')
+  @Get(':organizationId/:id([0-9a-fA-F-]+)')
   getStage(@Param('organizationId') organizationId: string, @Param('id') id: string) {
     return this.getOne.execute(id, organizationId);
   }
 
-  @Patch(':organizationId/:id')
+  @Patch(':organizationId/:id([0-9a-fA-F-]+)')
   update(
     @Param('organizationId') organizationId: string,
     @Param('id') id: string,
@@ -67,7 +67,7 @@ export class PipelineController {
     return this.updatePipeline.execute(id, organizationId, body);
   }
 
-  @Delete(':organizationId/:id')
+  @Delete(':organizationId/:id([0-9a-fA-F-]+)')
   deleteStage(@Param('organizationId') organizationId: string, @Param('id') id: string) {
     return this.remove.execute(id, organizationId);
   }
