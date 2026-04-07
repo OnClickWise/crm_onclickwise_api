@@ -41,7 +41,8 @@ import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
   ],
   // Exportamos os Use Cases caso precisem ser usados em outros módulos (ex: Dashboards)
   exports: [
-    'ILeadRepository'
+    'ILeadRepository',
+    CreateLeadUseCase,
   ]
 })
 export class LeadsModule {}

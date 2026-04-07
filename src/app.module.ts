@@ -20,6 +20,7 @@ import { GoalModule } from './modules/goal/goal.module';
 import { InvestorModule } from './modules/investor/investor.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
+import { LandingPagesModule } from './modules/landing-pages/landing-pages.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { UploadsModule } from './modules/uploads/uploads.module';
     InvestorModule,
     ChatModule,
     UploadsModule,
+    LandingPagesModule,
   ],
   controllers: [],
   providers: [],
