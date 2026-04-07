@@ -95,10 +95,9 @@ searchByParams( @Query() allQueries: any) {
     return this.getByStatus.execute(status);
   }
 
-  @UseGuards(JwtAuthGuard)
   @Post('bulk-pipeline')
-  bulkUpdate(@Req() req: any, @Body() body: any) {
-    return this.bulkPipeline.execute(body, req.user?.organizationId);
+  bulkUpdate(@Body() body: any) {
+    return this.bulkPipeline.execute(body);
   }
 
 

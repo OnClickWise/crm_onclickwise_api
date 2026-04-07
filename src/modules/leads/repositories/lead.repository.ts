@@ -24,6 +24,16 @@ export class LeadRepository implements ILeadRepository {
   private readonly tableName = 'leads';
   private leadColumnsCache: Set<string> | null = null;
 
+  private async getDefaultPipelineStage(organizationId: string): Promise<{ id: string; slug: string } | null> {
+    const stage = await this.knex('pipeline_stages')
+      .select('id', 'slug')
+      .where({ organization_id: organizationId, is_active: true })
+      .orderBy('order', 'asc')
+      .first();
+
+    return stage || null;
+  }
+
   private async getLeadColumns(): Promise<Set<string>> {
     if (this.leadColumnsCache) {
       return this.leadColumnsCache;
@@ -57,6 +67,14 @@ export class LeadRepository implements ILeadRepository {
       created_at: new Date(),
       updated_at: new Date(),
     };
+
+    if (leadColumns.has('show_on_pipeline') && data.show_on_pipeline !== undefined) {
+      insertData.show_on_pipeline = data.show_on_pipeline;
+    }
+
+    if (leadColumns.has('stage_id') && data.stageId !== undefined) {
+      insertData.stage_id = data.stageId;
+    }
 
     if (leadColumns.has('location')) {
       insertData.location = data.location || null;
@@ -100,23 +118,48 @@ export class LeadRepository implements ILeadRepository {
 
   async update(id: string, data: any): Promise<LeadEntity> {
     const leadColumns = await this.getLeadColumns();
+    const currentLead = await this.knex(this.tableName)
+      .select('organization_id')
+      .where({ id })
+      .first();
 
     // Mapeia camelCase do DTO para snake_case do Banco
     const updateData: any = {
       updated_at: new Date(),
     };
 
+    const assignedUserId = data.assignedUserId ?? data.assigned_user_id;
+    const shouldShowOnPipeline =
+      data.show_on_pipeline !== undefined
+        ? data.show_on_pipeline
+        : assignedUserId !== undefined && assignedUserId !== null;
+
+    let defaultStage: { id: string; slug: string } | null = null;
+    if ((shouldShowOnPipeline || data.stageId !== undefined || data.stage_id !== undefined) && currentLead?.organization_id) {
+      defaultStage = await this.getDefaultPipelineStage(currentLead.organization_id);
+    }
+
     if (data.name) updateData.name = data.name;
     if (data.status) updateData.status = data.status;
     if (data.assignedUserId !== undefined) updateData.assigned_user_id = data.assignedUserId;
     if (data.assigned_user_id !== undefined) updateData.assigned_user_id = data.assigned_user_id;
     if (data.show_on_pipeline !== undefined) updateData.show_on_pipeline = data.show_on_pipeline;
+    else if (assignedUserId !== undefined && assignedUserId !== null) updateData.show_on_pipeline = true;
     if (data.pipelineId !== undefined) updateData.pipeline_id = data.pipelineId;
     if (data.stageId !== undefined) updateData.stage_id = data.stageId;
+    if (data.stage_id !== undefined) updateData.stage_id = data.stage_id;
     if (data.value !== undefined) updateData.value = data.value;
     if (data.estimated_close_date) updateData.estimated_close_date = data.estimated_close_date;
     if (leadColumns.has('location') && data.location !== undefined) updateData.location = data.location;
     if (leadColumns.has('interest') && data.interest !== undefined) updateData.interest = data.interest;
+
+    const hasExplicitStage = data.stageId !== undefined || data.stage_id !== undefined;
+    if (updateData.show_on_pipeline === true && !hasExplicitStage && defaultStage) {
+      updateData.stage_id = defaultStage.id;
+      if (data.status === undefined) {
+        updateData.status = defaultStage.slug;
+      }
+    }
 
     const [updated] = await this.knex(this.tableName)
       .where({ id })
@@ -199,10 +242,31 @@ export class LeadRepository implements ILeadRepository {
       updated_at: new Date(),
     };
 
+    let defaultStage: { id: string; slug: string } | null = null;
+    const targetOrganizationId =
+      organizationId ||
+      (
+        await this.knex(this.tableName)
+          .select('organization_id')
+          .whereIn('id', data.lead_ids)
+          .first()
+      )?.organization_id;
+
+    if (data.show_on_pipeline === true && targetOrganizationId) {
+      defaultStage = await this.getDefaultPipelineStage(targetOrganizationId);
+    }
+
     if (data.status !== undefined) payload.status = data.status;
     if (data.pipelineId !== undefined) payload.pipeline_id = data.pipelineId;
     if (data.stageId !== undefined) payload.stage_id = data.stageId;
     if (data.show_on_pipeline !== undefined) payload.show_on_pipeline = data.show_on_pipeline;
+
+    if (payload.show_on_pipeline === true && payload.stage_id === undefined && defaultStage) {
+      payload.stage_id = defaultStage.id;
+      if (data.status === undefined) {
+        payload.status = defaultStage.slug;
+      }
+    }
 
     const query = this.knex(this.tableName)
       .whereIn('id', data.lead_ids);

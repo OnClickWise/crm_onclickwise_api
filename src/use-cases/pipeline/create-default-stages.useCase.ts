@@ -8,20 +8,19 @@ export class CreateDefaultStagesUseCase {
 
   async execute(orgId: string) {
     const defaults = [
-      { slug: 'entry', color: '#000000', stage_type: 'entry', order: 1 },
-      { slug: 'progress', color: '#3B82F6', stage_type: 'progress', order: 2 },
-      { slug: 'won', color: '#10B981', stage_type: 'won', order: 3 },
-      { slug: 'lost', color: '#EF4444', stage_type: 'lost', order: 4 },
+      { name: 'New Leads', slug: 'new', translation_key: 'Pipeline.stages.new', color: '#000000', stage_type: 'entry', order: 1 },
+      { name: 'In Contact', slug: 'contact', translation_key: 'Pipeline.stages.contact', color: '#3B82F6', stage_type: 'progress', order: 2 },
+      { name: 'Qualified', slug: 'qualified', translation_key: 'Pipeline.stages.qualified', color: '#10B981', stage_type: 'won', order: 3 },
+      { name: 'Lost', slug: 'lost', translation_key: 'Pipeline.stages.lost', color: '#EF4444', stage_type: 'lost', order: 4 },
     ];
 
     for (const stage of defaults) {
-      const exists = await this.repo.findBySlug(orgId, stage.slug);
+      const exists = await this.repo.findBySlug(stage.slug, orgId);
 
       if (!exists) {
         await this.repo.create({
           id: randomUUID(),
           organization_id: orgId,
-          name: stage.slug,
           ...stage,
           is_active: true,
           created_at: new Date(),

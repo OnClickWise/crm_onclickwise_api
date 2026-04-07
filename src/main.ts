@@ -98,8 +98,7 @@ async function bootstrap() {
     }
     await access(uploadsDir, constants.W_OK);
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error(`✗ Erro ao configurar diretório de uploads: ${message}`);
+    logger.error(`✗ Erro ao configurar diretório de uploads: ${error.message}`);
   }
 
   const port = Number(process.env.APP_PORT) || 8080;
