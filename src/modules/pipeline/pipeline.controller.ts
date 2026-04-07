@@ -1,7 +1,7 @@
 import { CreatePipelineUseCase } from '@/use-cases/pipeline/create-stage.useCase';
 import { ListPipelinesUseCase } from '@/use-cases/pipeline/list-pipeline.useCase';
 import { UpdatePipelineUseCase } from '@/use-cases/pipeline/update-pipeline.useCase';
-import { Controller, Post, Get, Body, Param, Patch, Delete, UseGuards, Query, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Post, Get, Body, Param, Patch, Delete, UseGuards, Query, Req } from '@nestjs/common';
 import { CreateStageDto } from './dtos/create-stage.dto';
 import { UpdateStageDto } from './dtos/update-stage.dto';
 import { DeletePipelineUseCase } from '@/use-cases/pipeline/delete-pipeline.useCase';
@@ -25,6 +25,10 @@ export class PipelineController {
 
   private resolveOrganizationId(routeOrgId: string, req: any): string {
     return req?.user?.organizationId || routeOrgId;
+  }
+
+  private isUuid(value: string): boolean {
+    return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(value);
   }
 
   @Get(':organizationId/kanban')
@@ -54,7 +58,20 @@ export class PipelineController {
   }
 
   @Get(':organizationId/:id([0-9a-fA-F-]+)')
-  getStage(@Param('organizationId') organizationId: string, @Param('id') id: string) {
+  getStage(
+    @Param('organizationId') organizationId: string,
+    @Param('id') id: string,
+    @Req() req: any,
+    @Query() query: { search?: string; assigned_user_id?: string; show_on_pipeline?: string; limit?: string },
+  ) {
+    if (id === 'kanban') {
+      return this.listKanbanBoard(organizationId, req, query);
+    }
+
+    if (!this.isUuid(id)) {
+      throw new BadRequestException('Invalid stage id');
+    }
+
     return this.getOne.execute(id, organizationId);
   }
 
@@ -64,11 +81,27 @@ export class PipelineController {
     @Param('id') id: string,
     @Body() body: UpdateStageDto,
   ) {
+    if (id === 'reorder') {
+      const stageIds = (body as UpdateStageDto & { stageIds?: string[] }).stageIds;
+      if (!Array.isArray(stageIds)) {
+        throw new BadRequestException('stageIds must be an array');
+      }
+      return this.reorder.execute(organizationId, stageIds);
+    }
+
+    if (!this.isUuid(id)) {
+      throw new BadRequestException('Invalid stage id');
+    }
+
     return this.updatePipeline.execute(id, organizationId, body);
   }
 
   @Delete(':organizationId/:id([0-9a-fA-F-]+)')
   deleteStage(@Param('organizationId') organizationId: string, @Param('id') id: string) {
+    if (!this.isUuid(id)) {
+      throw new BadRequestException('Invalid stage id');
+    }
+
     return this.remove.execute(id, organizationId);
   }
 
