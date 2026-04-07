@@ -88,38 +88,11 @@ export class PipelineStagesRepository {
   }
 
   async getKanbanBoard(organizationId: string, filters: PipelineKanbanFilters = {}) {
-    try {
-      const stages = await this.findByOrg(organizationId);
+    const stages = await this.findByOrg(organizationId);
+    const limit = Math.max(1, Math.min(Number(filters.limit || 300), 1000));
 
-      let hasStageId = false;
-      let hasShowOnPipeline = false;
-      let hasEstimatedCloseDate = false;
-      let hasLegacyEstCloseDate = false;
-      let hasLocation = false;
-      let hasInterest = false;
-
-      try {
-        const leadColumnRows = await this.knex('information_schema.columns')
-          .select('column_name')
-          .where({ table_name: 'leads' });
-
-        const leadColumns = new Set(leadColumnRows.map((r: any) => String(r.column_name)));
-        hasStageId = leadColumns.has('stage_id');
-        hasShowOnPipeline = leadColumns.has('show_on_pipeline');
-        hasEstimatedCloseDate = leadColumns.has('estimated_close_date');
-        hasLegacyEstCloseDate = leadColumns.has('est_close_date');
-        hasLocation = leadColumns.has('location');
-        hasInterest = leadColumns.has('interest');
-      } catch {
-        hasStageId = false;
-        hasShowOnPipeline = false;
-        hasEstimatedCloseDate = false;
-        hasLegacyEstCloseDate = false;
-        hasLocation = false;
-        hasInterest = false;
-      }
-
-      const selectedColumns: Array<string | Knex.Raw> = [
+    const leadsQuery = this.knex('leads')
+      .select([
         'id',
         'organization_id',
         'assigned_user_id',
@@ -132,193 +105,70 @@ export class PipelineStagesRepository {
         'description',
         'created_at',
         'updated_at',
-      ];
+        'show_on_pipeline',
+      ])
+      .where('organization_id', organizationId)
+      .orderBy('updated_at', 'desc')
+      .limit(limit);
 
-      if (hasLocation) selectedColumns.push('location');
-      if (hasInterest) selectedColumns.push('interest');
-      if (hasShowOnPipeline) selectedColumns.push('show_on_pipeline');
-      if (hasStageId) selectedColumns.push('stage_id');
-      if (hasEstimatedCloseDate) {
-        selectedColumns.push('estimated_close_date');
-      } else if (hasLegacyEstCloseDate) {
-        selectedColumns.push(this.knex.raw('est_close_date as estimated_close_date'));
-      }
-
-      const limit = Math.max(1, Math.min(Number(filters.limit || 300), 1000));
-      const leadsQuery = this.knex('leads')
-        .select(selectedColumns)
-        .where('organization_id', organizationId)
-        .orderBy('updated_at', 'desc')
-        .limit(limit);
-
-      if (hasShowOnPipeline) {
-        const showOnPipeline = filters.showOnPipeline ?? true;
-        leadsQuery.andWhere('show_on_pipeline', showOnPipeline);
-      }
-
-      if (filters.assignedUserId) {
-        leadsQuery.andWhere('assigned_user_id', filters.assignedUserId);
-      }
-
-      if (filters.search) {
-        const q = `%${filters.search}%`;
-        leadsQuery.andWhere((builder) => {
-          builder
-            .where('name', 'ilike', q)
-            .orWhere('email', 'ilike', q)
-            .orWhere('phone', 'ilike', q);
-        });
-      }
-
-      const leads = await leadsQuery;
-
-      const stageLeadsMap = new Map<string, any[]>();
-      const stageSlugMap = new Map<string, string>();
-      for (const stage of stages) {
-        stageLeadsMap.set(stage.id, []);
-        stageSlugMap.set(this.normalizeStageKey(stage.slug), stage.id);
-      }
-
-      const uncategorizedLeads: any[] = [];
-      for (const lead of leads as any[]) {
-        const leadStageId = hasStageId ? lead.stage_id : null;
-        if (leadStageId && stageLeadsMap.has(leadStageId)) {
-          stageLeadsMap.get(leadStageId)!.push(lead);
-          continue;
-        }
-
-        const statusKey = this.normalizeStageKey(lead.status);
-        const matchedStageId = stageSlugMap.get(statusKey);
-        if (matchedStageId && stageLeadsMap.has(matchedStageId)) {
-          stageLeadsMap.get(matchedStageId)!.push(lead);
-        } else {
-          uncategorizedLeads.push(lead);
-        }
-      }
-
-      const stagesWithLeads = stages.map((stage: any) => ({
-        ...stage,
-        leads: stageLeadsMap.get(stage.id) || [],
-      }));
-
-      const totalLeads = leads.length;
-      const totalValue = leads.reduce((acc: number, lead: any) => acc + Number(lead.value || 0), 0);
-      const wonLeads = stagesWithLeads
-        .filter((stage: any) => stage.stage_type === 'won')
-        .reduce((acc: number, stage: any) => acc + stage.leads.length, 0);
-
-      return {
-        stages: stagesWithLeads,
-        uncategorizedLeads,
-        metrics: {
-          totalLeads,
-          totalValue,
-          conversionRate: totalLeads > 0 ? Number(((wonLeads / totalLeads) * 100).toFixed(2)) : 0,
-        },
-      };
-    } catch {
-      const stages = await this.findByOrg(organizationId);
-      const limit = Math.max(1, Math.min(Number(filters.limit || 300), 1000));
-
-      const baseQuery = this.knex('leads')
-        .select([
-          'id',
-          'organization_id',
-          'assigned_user_id',
-          'name',
-          'email',
-          'phone',
-          'source',
-          'status',
-          'value',
-          'description',
-          'created_at',
-          'updated_at',
-        ])
-        .where('organization_id', organizationId)
-        .orderBy('updated_at', 'desc')
-        .limit(limit);
-
-      if (filters.assignedUserId) {
-        baseQuery.andWhere('assigned_user_id', filters.assignedUserId);
-      }
-
-      if (filters.search) {
-        const q = `%${filters.search}%`;
-        baseQuery.andWhere((builder) => {
-          builder
-            .where('name', 'ilike', q)
-            .orWhere('email', 'ilike', q)
-            .orWhere('phone', 'ilike', q);
-        });
-      }
-
-      let leads: any[] = [];
-      try {
-        if (filters.showOnPipeline !== undefined) {
-          baseQuery.andWhere('show_on_pipeline', filters.showOnPipeline);
-        }
-        leads = await baseQuery;
-      } catch {
-        leads = await this.knex('leads')
-          .select([
-            'id',
-            'organization_id',
-            'assigned_user_id',
-            'name',
-            'email',
-            'phone',
-            'source',
-            'status',
-            'value',
-            'description',
-            'created_at',
-            'updated_at',
-          ])
-          .where('organization_id', organizationId)
-          .orderBy('updated_at', 'desc')
-          .limit(limit);
-      }
-
-      const stageLeadsMap = new Map<string, any[]>();
-      const stageSlugMap = new Map<string, string>();
-      for (const stage of stages) {
-        stageLeadsMap.set(stage.id, []);
-        stageSlugMap.set(this.normalizeStageKey(stage.slug), stage.id);
-      }
-
-      const uncategorizedLeads: any[] = [];
-      for (const lead of leads) {
-        const statusKey = this.normalizeStageKey(lead.status);
-        const matchedStageId = stageSlugMap.get(statusKey);
-        if (matchedStageId && stageLeadsMap.has(matchedStageId)) {
-          stageLeadsMap.get(matchedStageId)!.push(lead);
-        } else {
-          uncategorizedLeads.push(lead);
-        }
-      }
-
-      const stagesWithLeads = stages.map((stage: any) => ({
-        ...stage,
-        leads: stageLeadsMap.get(stage.id) || [],
-      }));
-
-      const totalLeads = leads.length;
-      const totalValue = leads.reduce((acc: number, lead: any) => acc + Number(lead.value || 0), 0);
-      const wonLeads = stagesWithLeads
-        .filter((stage: any) => stage.stage_type === 'won')
-        .reduce((acc: number, stage: any) => acc + stage.leads.length, 0);
-
-      return {
-        stages: stagesWithLeads,
-        uncategorizedLeads,
-        metrics: {
-          totalLeads,
-          totalValue,
-          conversionRate: totalLeads > 0 ? Number(((wonLeads / totalLeads) * 100).toFixed(2)) : 0,
-        },
-      };
+    if (filters.showOnPipeline !== undefined) {
+      leadsQuery.andWhere('show_on_pipeline', filters.showOnPipeline);
     }
+
+    if (filters.assignedUserId) {
+      leadsQuery.andWhere('assigned_user_id', filters.assignedUserId);
+    }
+
+    if (filters.search) {
+      const q = `%${filters.search}%`;
+      leadsQuery.andWhere((builder) => {
+        builder
+          .where('name', 'ilike', q)
+          .orWhere('email', 'ilike', q)
+          .orWhere('phone', 'ilike', q);
+      });
+    }
+
+    const leads = await leadsQuery;
+
+    const stageLeadsMap = new Map<string, any[]>();
+    const stageSlugMap = new Map<string, string>();
+    for (const stage of stages) {
+      stageLeadsMap.set(stage.id, []);
+      stageSlugMap.set(this.normalizeStageKey(stage.slug), stage.id);
+    }
+
+    const uncategorizedLeads: any[] = [];
+    for (const lead of leads as any[]) {
+      const statusKey = this.normalizeStageKey(lead.status);
+      const matchedStageId = stageSlugMap.get(statusKey);
+      if (matchedStageId && stageLeadsMap.has(matchedStageId)) {
+        stageLeadsMap.get(matchedStageId)!.push(lead);
+      } else {
+        uncategorizedLeads.push(lead);
+      }
+    }
+
+    const stagesWithLeads = stages.map((stage: any) => ({
+      ...stage,
+      leads: stageLeadsMap.get(stage.id) || [],
+    }));
+
+    const totalLeads = leads.length;
+    const totalValue = leads.reduce((acc: number, lead: any) => acc + Number(lead.value || 0), 0);
+    const wonLeads = stagesWithLeads
+      .filter((stage: any) => stage.stage_type === 'won')
+      .reduce((acc: number, stage: any) => acc + stage.leads.length, 0);
+
+    return {
+      stages: stagesWithLeads,
+      uncategorizedLeads,
+      metrics: {
+        totalLeads,
+        totalValue,
+        conversionRate: totalLeads > 0 ? Number(((wonLeads / totalLeads) * 100).toFixed(2)) : 0,
+      },
+    };
   }
 
   async reorder(organizationId: string, stageIds: string[]) {
