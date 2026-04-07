@@ -5,7 +5,10 @@ import { IUserRepository } from '@/modules/auth/repositories/interface/user.repo
 export class UpdateEmployeeUseCase {
   constructor(private readonly userRepository: IUserRepository) {}
 
-  async execute(organizationId: string, body: { id: string; name?: string; email?: string; role?: string }) {
+  async execute(
+    organizationId: string,
+    body: { id: string; name?: string; email?: string; role?: string },
+  ) {
     if (!body.id) {
       throw new BadRequestException('id é obrigatório');
     }

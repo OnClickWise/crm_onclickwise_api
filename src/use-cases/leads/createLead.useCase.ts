@@ -11,7 +11,10 @@ export class CreateLeadUseCase {
     private readonly leadRepository: ILeadRepository,
   ) {}
 
-  async execute(user_data: AuthPayload | string, data: CreateLeadDto): Promise<{lead:LeadEntity}> {
+  async execute(
+    user_data: AuthPayload | string,
+    data: CreateLeadDto,
+  ): Promise<{ lead: LeadEntity }> {
     // Handle both AuthPayload and string (organizationId)
     let organizationId: string;
     let assignedUserId: string | undefined;
@@ -38,7 +41,9 @@ export class CreateLeadUseCase {
     );
 
     if (existingLeads != undefined) {
-      throw new BadRequestException('Um lead com este email já está cadastrado nesta organização.');
+      throw new BadRequestException(
+        'Um lead com este email já está cadastrado nesta organização.',
+      );
     }
 
     // 2. Criar a entidade
@@ -64,7 +69,7 @@ export class CreateLeadUseCase {
     });
     
     return {
-      lead: newLead
-    }
+      lead: newLead,
+    };
   }
 }

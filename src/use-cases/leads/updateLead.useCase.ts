@@ -1,6 +1,6 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import type { ILeadRepository } from '@/modules/leads/repositories/interface/lead.repository.interface';
-import { success } from 'zod';
+import { UpdateLeadDto } from '@/modules/leads/dtos/update.lead.dto';
 
 @Injectable()
 export class UpdateLeadUseCase {
@@ -9,7 +9,7 @@ export class UpdateLeadUseCase {
     private readonly leadRepository: ILeadRepository,
   ) {}
 
-  async execute(id: string, data: any) {
+  async execute(id: string, data: UpdateLeadDto) {
     const lead = await this.leadRepository.findById(id);
     if (!lead) throw new NotFoundException('Lead não encontrado');
 
@@ -20,7 +20,7 @@ export class UpdateLeadUseCase {
 
     return {
       success: true,
-      lead: updated
-    }
+      lead: updated,
+    };
   }
 }
