@@ -27,20 +27,6 @@ export class PipelineController {
     return req?.user?.organizationId || routeOrgId;
   }
 
-  @Post(':organizationId')
-  create(
-    @Param('organizationId') organizationId: string,
-    @Body() body: CreateStageDto,
-  ) {
-    return this.createPipeline.execute(organizationId, body);
-  }
-
-  @Get(':organizationId')
-  list(@Param('organizationId') organizationId: string, @Req() req: any) {
-    const scopedOrgId = this.resolveOrganizationId(organizationId, req);
-    return this.listPipelines.execute(scopedOrgId);
-  }
-
   @Get(':organizationId/kanban')
   listKanbanBoard(
     @Param('organizationId') organizationId: string,
@@ -49,6 +35,27 @@ export class PipelineController {
   ) {
     const scopedOrgId = this.resolveOrganizationId(organizationId, req);
     return this.getKanbanBoard.execute(scopedOrgId, query);
+  }
+
+  @Patch(':organizationId/reorder')
+  reorderStages(
+    @Param('organizationId') organizationId: string,
+    @Body('stageIds') stageIds: string[],
+  ) {
+    return this.reorder.execute(organizationId, stageIds);
+  }
+
+  @Post(':organizationId')
+  create(
+    @Param('organizationId') organizationId: string,
+    @Body() body: CreateStageDto,
+  ) {
+    return this.createPipeline.execute(organizationId, body);
+  }
+
+  @Get(':organizationId/:id')
+  getStage(@Param('organizationId') organizationId: string, @Param('id') id: string) {
+    return this.getOne.execute(id, organizationId);
   }
 
   @Patch(':organizationId/:id')
@@ -60,21 +67,14 @@ export class PipelineController {
     return this.updatePipeline.execute(id, organizationId, body);
   }
 
-  @Get(':organizationId/:id')
-  getStage(@Param('organizationId') organizationId: string, @Param('id') id: string) {
-    return this.getOne.execute(id, organizationId);
-  }
-
   @Delete(':organizationId/:id')
   deleteStage(@Param('organizationId') organizationId: string, @Param('id') id: string) {
     return this.remove.execute(id, organizationId);
   }
 
-  @Patch(':organizationId/reorder')
-  reorderStages(
-    @Param('organizationId') organizationId: string,
-    @Body('stageIds') stageIds: string[],
-  ) {
-    return this.reorder.execute(organizationId, stageIds);
+  @Get(':organizationId')
+  list(@Param('organizationId') organizationId: string, @Req() req: any) {
+    const scopedOrgId = this.resolveOrganizationId(organizationId, req);
+    return this.listPipelines.execute(scopedOrgId);
   }
 }
