@@ -88,18 +88,36 @@ export class PipelineStagesRepository {
   }
 
   async getKanbanBoard(organizationId: string, filters: PipelineKanbanFilters = {}) {
-    const [stages, leadColumnRows] = await Promise.all([
-      this.findByOrg(organizationId),
-      this.knex('information_schema.columns')
-        .select('column_name')
-        .where({ table_name: 'leads' }),
-    ]);
+    const stages = await this.findByOrg(organizationId);
 
-    const leadColumns = new Set(leadColumnRows.map((r: any) => String(r.column_name)));
-    const hasStageId = leadColumns.has('stage_id');
-    const hasShowOnPipeline = leadColumns.has('show_on_pipeline');
-    const hasEstimatedCloseDate = leadColumns.has('estimated_close_date');
-    const hasLegacyEstCloseDate = leadColumns.has('est_close_date');
+    let hasStageId = false;
+    let hasShowOnPipeline = false;
+    let hasEstimatedCloseDate = false;
+    let hasLegacyEstCloseDate = false;
+    let hasLocation = false;
+    let hasInterest = false;
+
+    try {
+      const leadColumnRows = await this.knex('information_schema.columns')
+        .select('column_name')
+        .where({ table_name: 'leads' });
+
+      const leadColumns = new Set(leadColumnRows.map((r: any) => String(r.column_name)));
+      hasStageId = leadColumns.has('stage_id');
+      hasShowOnPipeline = leadColumns.has('show_on_pipeline');
+      hasEstimatedCloseDate = leadColumns.has('estimated_close_date');
+      hasLegacyEstCloseDate = leadColumns.has('est_close_date');
+      hasLocation = leadColumns.has('location');
+      hasInterest = leadColumns.has('interest');
+    } catch {
+      // Fallback seguro: segue sem colunas opcionais em vez de quebrar o endpoint.
+      hasStageId = false;
+      hasShowOnPipeline = false;
+      hasEstimatedCloseDate = false;
+      hasLegacyEstCloseDate = false;
+      hasLocation = false;
+      hasInterest = false;
+    }
 
     const selectedColumns: Array<string | Knex.Raw> = [
       'id',
@@ -116,8 +134,8 @@ export class PipelineStagesRepository {
       'updated_at',
     ];
 
-    if (leadColumns.has('location')) selectedColumns.push('location');
-    if (leadColumns.has('interest')) selectedColumns.push('interest');
+    if (hasLocation) selectedColumns.push('location');
+    if (hasInterest) selectedColumns.push('interest');
     if (hasShowOnPipeline) selectedColumns.push('show_on_pipeline');
     if (hasStageId) selectedColumns.push('stage_id');
     if (hasEstimatedCloseDate) {
