@@ -1,7 +1,7 @@
 import { CreatePipelineUseCase } from '@/use-cases/pipeline/create-stage.useCase';
 import { ListPipelinesUseCase } from '@/use-cases/pipeline/list-pipeline.useCase';
 import { UpdatePipelineUseCase } from '@/use-cases/pipeline/update-pipeline.useCase';
-import { Controller, Post, Get, Body, Param, Patch, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Patch, Delete, UseGuards, Query, Req } from '@nestjs/common';
 import { CreateStageDto } from './dtos/create-stage.dto';
 import { UpdateStageDto } from './dtos/update-stage.dto';
 import { DeletePipelineUseCase } from '@/use-cases/pipeline/delete-pipeline.useCase';
@@ -23,6 +23,10 @@ export class PipelineController {
     private getKanbanBoard: GetPipelineKanbanBoardUseCase,
   ) {}
 
+  private resolveOrganizationId(routeOrgId: string, req: any): string {
+    return req?.user?.organizationId || routeOrgId;
+  }
+
   @Post(':organizationId')
   create(
     @Param('organizationId') organizationId: string,
@@ -32,16 +36,19 @@ export class PipelineController {
   }
 
   @Get(':organizationId')
-  list(@Param('organizationId') organizationId: string) {
-    return this.listPipelines.execute(organizationId);
+  list(@Param('organizationId') organizationId: string, @Req() req: any) {
+    const scopedOrgId = this.resolveOrganizationId(organizationId, req);
+    return this.listPipelines.execute(scopedOrgId);
   }
 
   @Get(':organizationId/kanban')
   listKanbanBoard(
     @Param('organizationId') organizationId: string,
+    @Req() req: any,
     @Query() query: { search?: string; assigned_user_id?: string; show_on_pipeline?: string; limit?: string },
   ) {
-    return this.getKanbanBoard.execute(organizationId, query);
+    const scopedOrgId = this.resolveOrganizationId(organizationId, req);
+    return this.getKanbanBoard.execute(scopedOrgId, query);
   }
 
   @Patch(':organizationId/:id')
