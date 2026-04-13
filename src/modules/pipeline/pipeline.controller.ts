@@ -44,9 +44,11 @@ export class PipelineController {
   @Patch(':organizationId/reorder')
   reorderStages(
     @Param('organizationId') organizationId: string,
+    @Req() req: any,
     @Body('stageIds') stageIds: string[],
   ) {
-    return this.reorder.execute(organizationId, stageIds);
+    const scopedOrgId = this.resolveOrganizationId(organizationId, req);
+    return this.reorder.execute(scopedOrgId, stageIds);
   }
 
   @Post(':organizationId')
@@ -64,10 +66,6 @@ export class PipelineController {
     @Req() req: any,
     @Query() query: { search?: string; assigned_user_id?: string; show_on_pipeline?: string; limit?: string },
   ) {
-    if (id === 'kanban') {
-      return this.listKanbanBoard(organizationId, req, query);
-    }
-
     if (!this.isUuid(id)) {
       throw new BadRequestException('Invalid stage id');
     }
@@ -81,14 +79,6 @@ export class PipelineController {
     @Param('id') id: string,
     @Body() body: UpdateStageDto,
   ) {
-    if (id === 'reorder') {
-      const stageIds = (body as UpdateStageDto & { stageIds?: string[] }).stageIds;
-      if (!Array.isArray(stageIds)) {
-        throw new BadRequestException('stageIds must be an array');
-      }
-      return this.reorder.execute(organizationId, stageIds);
-    }
-
     if (!this.isUuid(id)) {
       throw new BadRequestException('Invalid stage id');
     }
