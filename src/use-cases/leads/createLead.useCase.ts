@@ -1,4 +1,4 @@
-import { Injectable, Inject, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { ILeadRepository } from '@/modules/leads/repositories/interface/lead.repository.interface';
 import { CreateLeadDto } from '@/modules/leads/dtos/create.lead.dto';
 import { LeadEntity } from '@/modules/leads/entities/lead.entity';
@@ -29,8 +29,11 @@ export class CreateLeadUseCase {
       assignedUserId = user_data.userId;
     }
 
-    // Use organization_id from DTO if provided, otherwise use from user_data
+    // Public flow can provide organization_id; authenticated flow cannot override token scope.
     if (data.organization_id) {
+      if (typeof user_data !== 'string' && data.organization_id !== organizationId) {
+        throw new ForbiddenException('Cross-tenant organization override');
+      }
       organizationId = data.organization_id;
     }
 
@@ -54,19 +57,7 @@ export class CreateLeadUseCase {
       status: data.status || 'New',
     });
     
-    console.log('[CREATE_LEAD] Criando lead:', {
-      name: lead.name,
-      email: lead.email,
-      organization_id: lead.organization_id,
-      status: lead.status,
-    });
-    
     const newLead = await this.leadRepository.create(lead);
-    
-    console.log('[CREATE_LEAD] Lead criado com sucesso:', {
-      id: newLead.id,
-      organization_id: newLead.organization_id,
-    });
     
     return {
       lead: newLead,

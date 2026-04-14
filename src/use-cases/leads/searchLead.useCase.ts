@@ -9,11 +9,14 @@ export class SearchLeadUseCase {
     private leadRepository: ILeadRepository
   ) {}
 
-  async execute(criteria: Record<string, any>) {
+  async execute(criteria: Record<string, any>, organizationId: string) {
     // A lógica antiga permitia busca parcial por nome ou exata por documentos 
     if (!criteria) {
       return [];
     }
-    return await this.leadRepository.search(criteria);
+    return await this.leadRepository.search({
+      ...criteria,
+      organization_id: organizationId,
+    });
   }
 }

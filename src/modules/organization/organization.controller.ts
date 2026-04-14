@@ -14,6 +14,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { GetUserOrganizationUseCase } from '@/use-cases/organization/get-user-organization.useCase';
 import { UpdateOrganizationUseCase } from '@/use-cases/organization/update-organization.useCase';
 import { UploadOrganizationLogoUseCase } from '@/use-cases/organization/upload-organization-logo.useCase';
+import { UpdateOrganizationDto } from './dtos/update-organization.dto';
 
 @Controller('organization')
 export class OrganizationController {
@@ -36,16 +37,17 @@ export class OrganizationController {
         organization,
       };
     } catch (error) {
+      this.logger.error('Erro ao buscar organização do usuário', error?.stack);
       return {
         success: false,
-        error: error.message,
+        error: 'Falha ao buscar organização',
       };
     }
   }
 
   @Put('update')
   @UseGuards(JwtAuthGuard)
-  async updateOrganization(@Req() req, @Body() body: any) {
+  async updateOrganization(@Req() req, @Body() body: UpdateOrganizationDto) {
     try {
       const organizationId = req.user.organizationId;
       const updatedOrganization = await this.updateOrganizationUseCase.execute(
@@ -57,9 +59,10 @@ export class OrganizationController {
         organization: updatedOrganization,
       };
     } catch (error) {
+      this.logger.error('Erro ao atualizar organização', error?.stack);
       return {
         success: false,
-        error: error.message,
+        error: 'Falha ao atualizar organização',
       };
     }
   }

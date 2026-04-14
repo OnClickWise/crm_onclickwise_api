@@ -1,14 +1,14 @@
 import { Injectable, Inject } from '@nestjs/common';
-import type { LeadRepository } from '@/modules/leads/repositories/lead.repository';
+import type { ILeadRepository } from '@/modules/leads/repositories/interface/lead.repository.interface';
 
 @Injectable()
 export class GetLeadsByStatusUseCase {
   constructor(
     @Inject('ILeadRepository')
-    private readonly leadRepository: LeadRepository,
+    private readonly leadRepository: ILeadRepository,
   ) {}
 
-  async execute(status: string) {
-    return await this.leadRepository.findByStatus(status);
+  async execute(status: string, organizationId: string) {
+    return await this.leadRepository.findByStatus(status, organizationId);
   }
 }

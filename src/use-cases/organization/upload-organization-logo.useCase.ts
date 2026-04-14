@@ -73,7 +73,10 @@ export class UploadOrganizationLogoUseCase {
         filename: uniqueFilename,
       };
     } catch (error) {
-      this.logger.error(`[UPLOAD] ✗ Erro: ${error.message}`, error.stack);
+      this.logger.error(
+        `[UPLOAD] ✗ Erro no upload de logo para organizationId=${organizationId}`,
+        error?.stack,
+      );
 
       if (
         error?.code === 'FST_REQ_FILE_TOO_LARGE' ||
@@ -86,7 +89,7 @@ export class UploadOrganizationLogoUseCase {
         throw error;
       }
 
-      throw new BadRequestException(`Erro ao fazer upload do logo: ${error.message}`);
+      throw new BadRequestException('Erro ao fazer upload do logo');
     }
   }
 }

@@ -9,7 +9,7 @@ export interface ILeadRepository {
   create(data: CreateLeadDto): Promise<LeadEntity>;
 
   // Leitura
-  findById(id: string): Promise<LeadEntity | null>;
+  findById(id: string, organizationId?: string): Promise<LeadEntity | null>;
 
   existsInOrganization(organizationId:string,leadId:string): Promise<LeadEntity>;
 
@@ -20,13 +20,13 @@ export interface ILeadRepository {
   findByStatus(status: string, organizationId?: string): Promise<LeadEntity[]>;
   findByEmail(email: string, organizationId?: string): Promise<LeadEntity | null>;
   // Atualização
-  update(id: string, data: UpdateLeadDto): Promise<LeadEntity>;
+  update(id: string, data: UpdateLeadDto, organizationId?: string): Promise<LeadEntity>;
   
   // Operações em Massa (Pipeline)
   updateBulkPipeline(data: BulkUpdateLeadDto, organizationId?: string): Promise<void>;
 
   // Exclusão
-  delete(id: string): Promise<void>;
+  delete(id: string, organizationId?: string): Promise<void>;
 
   // Anexos (Gestão de Metadados no Banco)
   addAttachment(lead:LeadEntity, attachmentData: any): Promise<LeadEntity>;

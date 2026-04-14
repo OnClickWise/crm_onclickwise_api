@@ -1,5 +1,4 @@
-import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards,Request,Req } from '@nestjs/common';
-// Importação dos Use Cases (Devem ser criados na pasta use-cases/leads)
+import { Controller, Post, Get, Put, Delete, Body, Param, Query, UseGuards, Req, BadRequestException } from '@nestjs/common';
 import { CreateLeadUseCase } from '@/use-cases/leads/createLead.useCase';
 import { SearchLeadUseCase } from '@/use-cases/leads/searchLead.useCase';
 import { ListLeadsUseCase } from '@/use-cases/leads/listLeads.useCase';
@@ -11,146 +10,114 @@ import { UploadAttachmentUseCase } from '@/use-cases/leads/uploadAttachment.useC
 import { GetLeadByIdUseCase } from '@/use-cases/leads/getLeadByIuseCase';
 import { GetAttachmentByIdUseCase } from '@/use-cases/leads/getAttachmentUseCase';
 import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
-
-
-
-import { UploadAttachmentDto } from '@/modules/leads/dtos/upload.attchment.dto';
-
+import { CreateLeadDto } from './dtos/create.lead.dto';
+import { UpdateLeadDto } from './dtos/update.lead.dto';
+import { BulkUpdateLeadDto } from './dtos/bulk.update.lead.dto';
 import * as fs from 'fs';
-import * as path from 'path';
-import { file } from 'zod';
 
 @Controller('leads')
 export class LeadsController {
   constructor(
-    private searchLead: SearchLeadUseCase,
-    private listLeads: ListLeadsUseCase,
-    private createLead: CreateLeadUseCase,
-    private updateLead: UpdateLeadUseCase,
-    private deleteLead: DeleteLeadUseCase,
-    private getByStatus: GetLeadsByStatusUseCase,
-    private bulkPipeline: BulkPipelineUseCase,
-    private uploadAttach: UploadAttachmentUseCase,
-    private getAttachmentbyId: GetAttachmentByIdUseCase,
-    //private downloadAttach: DownloadAttachmentUseCase,
-    private getById: GetLeadByIdUseCase,
+    private readonly searchLead: SearchLeadUseCase,
+    private readonly listLeads: ListLeadsUseCase,
+    private readonly createLead: CreateLeadUseCase,
+    private readonly updateLead: UpdateLeadUseCase,
+    private readonly deleteLead: DeleteLeadUseCase,
+    private readonly getByStatus: GetLeadsByStatusUseCase,
+    private readonly bulkPipeline: BulkPipelineUseCase,
+    private readonly uploadAttach: UploadAttachmentUseCase,
+    private readonly getAttachmentById: GetAttachmentByIdUseCase,
+    private readonly getById: GetLeadByIdUseCase,
   ) {}
 
-  // --- ROTAS PÚBLICAS ---
-
+  // --- ROTA PÚBLICA ---
   @Post('public')
-  createPublic(@Body() body: any) {
+  createPublic(@Body() body: CreateLeadDto) {
+    if (!body.organization_id) {
+      throw new BadRequestException('organization_id is required for public lead creation');
+    }
     return this.createLead.execute(body.organization_id, body);
   }
 
   // --- ROTAS PROTEGIDAS ---
-
-
-@Get('search/:params')
-searchByParams( @Query() allQueries: any) {
-  return this.searchLead.execute({ 
-    filters: allQueries 
-  });
-}
-
-  @Get('search')
-  searchGeneric(@Query() query: any) {
-    return this.searchLead.execute(query);
+  @UseGuards(JwtAuthGuard)
+  @Get('search/:params')
+  searchByParams(@Req() req: any, @Query() allQueries: any) {
+    return this.searchLead.execute({ filters: allQueries }, req.user.organizationId);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Get('search')
+  searchGeneric(@Req() req: any, @Query() query: any) {
+    return this.searchLead.execute(query, req.user.organizationId);
+  }
 
   @UseGuards(JwtAuthGuard)
   @Get()
   list(@Req() req: any) {
-    const organizationId = req.user?.organizationId;
-    if (!organizationId) {
-      return { leads: [], error: 'No organization found in token' };
-    }
-    return this.listLeads.execute(organizationId);
+    return this.listLeads.execute(req.user.organizationId);
   }
-
 
   @UseGuards(JwtAuthGuard)
   @Post()
-  createInternal(@Req() req: any) {
-    return this.createLead.execute(req.user, req.body);
+  createInternal(@Req() req: any, @Body() body: CreateLeadDto) {
+    return this.createLead.execute(req.user, body);
   }
 
   @UseGuards(JwtAuthGuard)
   @Put()
-  update(@Body() body: any) {
-    // Nota: A tabela indica PUT /leads sem ID na URL, sugerindo ID no body
-    return this.updateLead.execute(body.id, body);
+  update(@Req() req: any, @Body() body: UpdateLeadDto & { id: string }) {
+    return this.updateLead.execute(body.id, body, req.user.organizationId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Delete()
-  remove(@Body('id') id: string) {
-    return this.deleteLead.execute(id);
+  remove(@Req() req: any, @Body('id') id: string) {
+    return this.deleteLead.execute(id, req.user.organizationId);
   }
 
-
+  @UseGuards(JwtAuthGuard)
   @Get('status')
-  listByStatus(@Query('status') status: string) {
-    return this.getByStatus.execute(status);
+  listByStatus(@Req() req: any, @Query('status') status: string) {
+    return this.getByStatus.execute(status, req.user.organizationId);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('bulk-pipeline')
-  bulkUpdate(@Req() req: any, @Body() body: any) {
-    return this.bulkPipeline.execute(body, req.user?.organizationId);
+  bulkUpdate(@Req() req: any, @Body() body: BulkUpdateLeadDto) {
+    return this.bulkPipeline.execute(body, req.user.organizationId);
   }
-
-
-
 
   @UseGuards(JwtAuthGuard)
   @Get(':leadId/attachments/:attachmentId')
-  async getAttachment(@Param('leadId') leadId: string,@Param('attachmentId') attachmentId: string, @Req() req: any) {
-   
-    const result = await this.getAttachmentbyId.execute(req.user.organizationId,leadId,attachmentId)
+  async getAttachment(@Param('leadId') leadId: string, @Param('attachmentId') attachmentId: string, @Req() req: any) {
+    const result = await this.getAttachmentById.execute(req.user.organizationId, leadId, attachmentId);
+
     if (result.success && result.attachment && result.filePath) {
-        
-        const fileBuffer = fs.readFileSync(result.filePath);
-        
-        return fileBuffer
-      }
-    else {
-      return {
-        sucess:false
-      }
+      return fs.readFileSync(result.filePath);
     }
+
+    return { success: false };
   }
 
   @UseGuards(JwtAuthGuard)
   @Post(':id/attachments')
   async upload(@Param('id') id: string, @Req() req: any) {
-
-    const data = await req.file(); 
-  
+    const data = await req.file();
     if (!data) {
       return;
     }
-   
-    const modified = this.uploadAttach.execute(req.user.organizationId,id, data);
+
+    const modified = this.uploadAttach.execute(req.user.organizationId, id, data);
     return {
-      success:true,
-      lead: modified
-    }
-
+      success: true,
+      lead: modified,
+    };
   }
 
-
-
-/*
-  @Get(':id/attachments/:fId')
-  download(@Param('id') id: string, @Param('fId') fId: string) {
-    return this.downloadAttach.execute(id, fId);
-  }
-*/
-
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
-  findById(@Param('id') id: string) {
-    return this.getById.execute(id);
+  findById(@Req() req: any, @Param('id') id: string) {
+    return this.getById.execute(id, req.user.organizationId);
   }
 }

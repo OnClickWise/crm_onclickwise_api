@@ -10,6 +10,7 @@ import { env } from './shared/config/env';
 import contentParser from '@fastify/multipart';
 import { mkdir, access, constants } from 'fs/promises';
 import { existsSync } from 'fs';
+import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
 
 async function bootstrap() {
   const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 25);
@@ -79,10 +80,13 @@ async function bootstrap() {
 
   app.useGlobalPipes(
     new ValidationPipe({
+      transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
     }),
   );
+
+  app.useGlobalFilters(new GlobalExceptionFilter());
  
   await app.register(contentParser, {
     limits: {

@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { Knex } from 'knex';
+import { UpdateOrganizationDto } from './dtos/update-organization.dto';
 
 @Injectable()
 export class OrganizationService {
@@ -40,7 +41,7 @@ export class OrganizationService {
     return organization;
   }
 
-  async update(organizationId: string, data: any): Promise<any> {
+  async update(organizationId: string, data: UpdateOrganizationDto): Promise<any> {
     const allowedFields = [
       'name',
       'email',

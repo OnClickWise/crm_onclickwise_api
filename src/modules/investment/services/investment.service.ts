@@ -51,7 +51,7 @@ class CircuitBreaker {
 export class InvestmentService {
   private readonly logger = new Logger(InvestmentService.name);
   private readonly brapiCircuitBreaker = new CircuitBreaker();
-  private readonly brapiToken = process.env.BRAPI_TOKEN || 'nqCTAyoKAbHLUAgPQzcyWn';
+  private readonly brapiToken = process.env.BRAPI_TOKEN?.trim() || null;
 
   constructor(
     @Inject('knex') private readonly knex: Knex,
@@ -124,6 +124,11 @@ export class InvestmentService {
    * TTL: 5 minutos (300 segundos)
    */
   private async fetchCurrentPrices(assets: Array<{ asset_name: string; asset_type: string }>) {
+    if (!this.brapiToken) {
+      this.logger.warn('BRAPI_TOKEN não configurado. Pulando atualização externa de preços.');
+      return new Map<string, number>();
+    }
+
     // Se circuit breaker está aberto, retorna cache vazio
     if (this.brapiCircuitBreaker.isOpen()) {
       this.logger.warn('Circuit breaker aberto para BRAPI. Retornando cache vazio.');

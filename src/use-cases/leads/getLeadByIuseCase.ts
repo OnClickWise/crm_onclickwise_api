@@ -1,15 +1,15 @@
 import { Injectable, Inject, NotFoundException } from '@nestjs/common';
-import { LeadRepository } from '@/modules/leads/repositories/lead.repository';
+import type { ILeadRepository } from '@/modules/leads/repositories/interface/lead.repository.interface';
 
 @Injectable()
 export class GetLeadByIdUseCase {
   constructor(
     @Inject('ILeadRepository')
-    private leadRepository: LeadRepository
+    private leadRepository: ILeadRepository
   ) {}
 
-  async execute(id: string) {
-    const lead = await this.leadRepository.findById(id);
+  async execute(id: string, organizationId: string) {
+    const lead = await this.leadRepository.findById(id, organizationId);
     
     if (!lead) {
       throw new NotFoundException(`Lead with ID ${id} not found`);

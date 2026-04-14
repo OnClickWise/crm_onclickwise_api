@@ -1,14 +1,7 @@
-import {
-  AuthPayload,
-  LoginRequest,
-  LoginResponse,
-} from '@/modules/auth/entities/auth/auth.entity';
-import { IUserRepository } from '@/modules/auth/repositories/interface/user.repository.interface';
 import { CreateStageDto } from '@/modules/pipeline/dtos/create-stage.dto';
 import { PipelineStagesRepository } from '@/modules/pipeline/repositories/pipeline-stage.repository';
-import { JWT_SECRET } from '@/shared/config/config';
 
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 
 import { randomUUID } from 'crypto';
 
@@ -21,7 +14,7 @@ export class CreatePipelineUseCase {
     const exists = await this.repo.findBySlug(dto.slug, orgId);
 
     if (exists) {
-      throw new Error('Já existe uma stage com esse slug');
+      throw new ConflictException('Já existe uma stage com esse slug');
     }
 
     let order = dto.order;

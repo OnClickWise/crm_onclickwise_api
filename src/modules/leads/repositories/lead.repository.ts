@@ -116,12 +116,17 @@ export class LeadRepository implements ILeadRepository {
     };
   }
 
-  async update(id: string, data: any): Promise<LeadEntity> {
+  async update(id: string, data: any, organizationId?: string): Promise<LeadEntity> {
     const leadColumns = await this.getLeadColumns();
-    const currentLead = await this.knex(this.tableName)
+    const currentLeadQuery = this.knex(this.tableName)
       .select('organization_id')
-      .where({ id })
-      .first();
+      .where({ id });
+
+    if (organizationId) {
+      currentLeadQuery.andWhere({ organization_id: organizationId });
+    }
+
+    const currentLead = await currentLeadQuery.first();
 
     // Mapeia camelCase do DTO para snake_case do Banco
     const updateData: any = {
@@ -161,10 +166,12 @@ export class LeadRepository implements ILeadRepository {
       }
     }
 
-    const [updated] = await this.knex(this.tableName)
-      .where({ id })
-      .update(updateData)
-      .returning('*');
+    const updateQuery = this.knex(this.tableName).where({ id });
+    if (organizationId) {
+      updateQuery.andWhere({ organization_id: organizationId });
+    }
+
+    const [updated] = await updateQuery.update(updateData).returning('*');
     return updated;
   }
 
@@ -212,10 +219,13 @@ export class LeadRepository implements ILeadRepository {
     };
   }
 
-  async findById(id: string): Promise<LeadEntity | null> {
-    return await this.knex(this.tableName)
-      .where({ id })
-      .first();
+  async findById(id: string, organizationId?: string): Promise<LeadEntity | null> {
+    const query = this.knex(this.tableName).where({ id });
+    if (organizationId) {
+      query.andWhere({ organization_id: organizationId });
+    }
+
+    return await query.first();
   }
 
   async existsInOrganization(organizationId:string,leadId:string){
@@ -278,8 +288,13 @@ export class LeadRepository implements ILeadRepository {
     await query.update(payload);
   }
 
-  async delete(id: string): Promise<void> {
-    await this.knex(this.tableName).where({ id }).delete();
+  async delete(id: string, organizationId?: string): Promise<void> {
+    const query = this.knex(this.tableName).where({ id });
+    if (organizationId) {
+      query.andWhere({ organization_id: organizationId });
+    }
+
+    await query.delete();
   }
 
   async addAttachment(lead:LeadEntity, attachment: Attachment): Promise<LeadEntity> {

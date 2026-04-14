@@ -14,15 +14,30 @@ export class OrganizationRepository implements IOrganizationRepository {
     return this.knex('organizations').where({ slug }).first();
   }
 
-    async create(data: any) {
-    console.log(data)
+  async create(data: any) {
+    const payload = {
+      name: data.name,
+      slug: data.slug,
+      email: data.email,
+      company_id: data.company_id,
+      phone: data.phone,
+      address: data.address,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+      logo_url: data.logo_url,
+      password: data.password,
+      created_at: new Date(),
+      updated_at: new Date(),
+    };
+
     const [organization] = await this.knex('organizations')
       .insert({
         id: randomUUID(),
-        ...data,
+        ...payload,
       })
       .returning('*');
+
     return organization;
   }
-
 }
