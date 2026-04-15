@@ -1,5 +1,5 @@
 import { Controller, Post, Body, UseGuards, Req, Get, Put, Delete, Query, Res } from '@nestjs/common';
-import { FastifyReply } from 'fastify';
+import type { FastifyReply } from 'fastify';
 import { LoginUseCase } from '@/use-cases/auth/login.useCase';
 import { RegisterUseCase } from '@/use-cases/auth/register.useCase';
 import { LoginDto } from './dtos/login.dto';
