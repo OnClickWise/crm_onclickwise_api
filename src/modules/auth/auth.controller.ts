@@ -13,7 +13,7 @@ import { CreateEmployeeUseCase } from '@/use-cases/auth/create-employee.useCase'
 import { UpdateEmployeeUseCase } from '@/use-cases/auth/update-employee.useCase';
 import { DeleteEmployeeUseCase } from '@/use-cases/auth/delete-employee.useCase';
 import { OrganizationService } from '../organization/organization.service';
-import { clearAuthCookies, setAuthCookies } from './auth-cookie.util';
+import { clearAuthCookies, readCookieValue, setAuthCookies } from './auth-cookie.util';
 
 @Controller('auth')
 export class AuthController {
@@ -73,7 +73,7 @@ export class AuthController {
 
   @Post('refresh')
   async refresh(@Req() req, @Body('refreshToken') token: string, @Res({ passthrough: true }) reply: FastifyReply) {
-    const refreshToken = token || req.cookies?.refreshToken;
+    const refreshToken = token || readCookieValue(req.headers.cookie, 'refreshToken');
     const result = await this.refreshUseCase.execute(refreshToken);
     setAuthCookies(reply, result.accessToken, result.refreshToken);
     return { success: true };
@@ -82,7 +82,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Req() req, @Body('refreshToken') refreshToken: string, @Res({ passthrough: true }) reply: FastifyReply) {
-    await this.logoutUseCase.execute(req.user.userId, refreshToken || req.cookies?.refreshToken);
+    await this.logoutUseCase.execute(req.user.userId, refreshToken || readCookieValue(req.headers.cookie, 'refreshToken'));
     clearAuthCookies(reply);
     return { success: true };
   }

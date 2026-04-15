@@ -11,7 +11,6 @@ import contentParser from '@fastify/multipart';
 import { mkdir, access, constants } from 'fs/promises';
 import { existsSync } from 'fs';
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
-import cookie from '@fastify/cookie';
 
 function readCookieValue(cookieHeader: string | undefined, name: string): string | null {
   if (!cookieHeader) return null;
@@ -42,8 +41,6 @@ async function bootstrap() {
   );
 
   const logger = new Logger('Bootstrap');
-
-  await app.register(cookie);
 
   const origins = [
     'http://localhost:8080',
