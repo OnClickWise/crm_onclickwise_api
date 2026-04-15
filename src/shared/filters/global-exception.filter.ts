@@ -12,6 +12,30 @@ import { FastifyReply, FastifyRequest } from 'fastify';
 export class GlobalExceptionFilter implements ExceptionFilter {
   private readonly logger = new Logger(GlobalExceptionFilter.name);
 
+  private translateHttpError(status: number, exceptionName?: string): string {
+    switch (status) {
+      case HttpStatus.UNAUTHORIZED:
+        return 'Acesso não autorizado';
+      case HttpStatus.FORBIDDEN:
+        return 'Você não tem permissão para executar esta ação';
+      case HttpStatus.NOT_FOUND:
+        return 'Recurso não encontrado';
+      case HttpStatus.CONFLICT:
+        return 'Já existe um registro com esses dados';
+      case HttpStatus.BAD_REQUEST:
+        return 'Dados inválidos';
+      case HttpStatus.TOO_MANY_REQUESTS:
+        return 'Muitas solicitações. Tente novamente em instantes';
+      default:
+        if (exceptionName === 'UnauthorizedException') return 'Acesso não autorizado';
+        if (exceptionName === 'ForbiddenException') return 'Você não tem permissão para executar esta ação';
+        if (exceptionName === 'NotFoundException') return 'Recurso não encontrado';
+        if (exceptionName === 'ConflictException') return 'Já existe um registro com esses dados';
+        if (exceptionName === 'BadRequestException') return 'Dados inválidos';
+        return 'Erro inesperado';
+    }
+  }
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<FastifyReply>();
@@ -22,8 +46,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ? exception.getStatus()
       : HttpStatus.INTERNAL_SERVER_ERROR;
 
-    let message: string | string[] = 'Internal server error';
-    let error = 'Internal Server Error';
+    let message: string | string[] = 'Erro interno do servidor';
+    let error = 'Erro interno do servidor';
 
     if (isHttpException) {
       const exceptionResponse = exception.getResponse();
@@ -36,7 +60,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       ) {
         message = (exceptionResponse as { message?: string | string[] }).message ?? message;
       }
-      error = exception.name;
+      error = this.translateHttpError(status, exception.name);
+
+      if (status < 500 && (message === 'Unauthorized' || message === 'Forbidden' || message === 'Not Found' || message === 'Bad Request')) {
+        message = error;
+      }
     }
 
     const shouldSanitize = status >= 500;
@@ -46,8 +74,8 @@ export class GlobalExceptionFilter implements ExceptionFilter {
         `Unhandled exception on ${request.method} ${request.url}`,
         exception instanceof Error ? exception.stack : String(exception),
       );
-      message = 'Internal server error';
-      error = 'Internal Server Error';
+      message = 'Erro interno do servidor';
+      error = 'Erro interno do servidor';
     }
 
     response.status(status).send({
