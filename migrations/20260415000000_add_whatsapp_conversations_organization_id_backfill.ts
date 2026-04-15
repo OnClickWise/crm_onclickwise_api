@@ -16,12 +16,14 @@ export async function up(knex: Knex): Promise<void> {
     });
   }
 
-  await knex('whatsapp_conversations as c')
-    .update({ organization_id: knex.ref('a.organization_id') })
-    .from({ c: 'whatsapp_conversations' })
-    .join({ a: 'whatsapp_accounts' }, 'a.id', 'c.account_id')
-    .whereNull('c.organization_id')
-    .whereNotNull('c.account_id');
+  await knex.raw(`
+    UPDATE whatsapp_conversations AS c
+    SET organization_id = a.organization_id
+    FROM whatsapp_accounts AS a
+    WHERE c.account_id = a.id
+      AND c.organization_id IS NULL
+      AND c.account_id IS NOT NULL
+  `);
 }
 
 export async function down(knex: Knex): Promise<void> {
