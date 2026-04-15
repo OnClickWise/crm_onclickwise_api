@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Req, Get, Put, Delete, Query, Res } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get, Put, Delete, Query, Res, UnauthorizedException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { LoginUseCase } from '@/use-cases/auth/login.useCase';
 import { RegisterUseCase } from '@/use-cases/auth/register.useCase';
@@ -74,6 +74,10 @@ export class AuthController {
   @Post('refresh')
   async refresh(@Req() req, @Body('refreshToken') token: string, @Res({ passthrough: true }) reply: FastifyReply) {
     const refreshToken = token || readCookieValue(req.headers.cookie, 'refreshToken');
+    if (!refreshToken) {
+      throw new UnauthorizedException('Refresh token obrigatório');
+    }
+
     const result = await this.refreshUseCase.execute(refreshToken);
     setAuthCookies(reply, result.accessToken, result.refreshToken);
     return { success: true };
@@ -82,7 +86,12 @@ export class AuthController {
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(@Req() req, @Body('refreshToken') refreshToken: string, @Res({ passthrough: true }) reply: FastifyReply) {
-    await this.logoutUseCase.execute(req.user.userId, refreshToken || readCookieValue(req.headers.cookie, 'refreshToken'));
+    const tokenToRevoke = refreshToken || readCookieValue(req.headers.cookie, 'refreshToken');
+    if (!tokenToRevoke) {
+      throw new UnauthorizedException('Refresh token obrigatório');
+    }
+
+    await this.logoutUseCase.execute(req.user.userId, tokenToRevoke);
     clearAuthCookies(reply);
     return { success: true };
   }
