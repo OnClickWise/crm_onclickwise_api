@@ -13,6 +13,16 @@ export class WhatsappRepository {
   // Substitua 'KnexConnection' pelo token de injeção que você usa no seu projeto NestJS para o Knex
   constructor(@Inject('knex') private readonly knex: Knex) {}
 
+  private conversationOrganizationColumnPromise: Promise<boolean> | null = null;
+
+  private async hasConversationOrganizationColumn(): Promise<boolean> {
+    if (!this.conversationOrganizationColumnPromise) {
+      this.conversationOrganizationColumnPromise = this.knex.schema.hasColumn('whatsapp_conversations', 'organization_id');
+    }
+
+    return this.conversationOrganizationColumnPromise;
+  }
+
   // ==========================================
   // ACCOUNTS (Contas / Organização)
   // ==========================================
@@ -72,10 +82,12 @@ export class WhatsappRepository {
   }): Promise<WhatsappConversation> {
     
     // 1. Tenta achar a conversa existente
-    const existing = await this.knex('whatsapp_conversations')
+    const existing = await this.knex('whatsapp_conversations as c')
+      .join('whatsapp_accounts as a', 'a.id', 'c.account_id')
       .where({
-        organization_id: data.organization_id,
-        whatsapp_username: data.whatsapp_username,
+        'a.organization_id': data.organization_id,
+        'c.account_id': data.account_id,
+        'c.whatsapp_username': data.whatsapp_username,
       })
       .first();
 
@@ -100,16 +112,33 @@ export class WhatsappRepository {
       last_message_at: new Date(),
     };
 
+    const conversationHasOrganizationColumn = await this.hasConversationOrganizationColumn();
+    const insertPayload: Record<string, unknown> = {
+      id: newConversation.id,
+      account_id: newConversation.account_id,
+      whatsapp_username: newConversation.whatsapp_username,
+      lead_id: newConversation.lead_id,
+      is_active: newConversation.is_active,
+      chat_type: newConversation.chat_type,
+      last_message_at: newConversation.last_message_at,
+    };
+
+    if (conversationHasOrganizationColumn) {
+      insertPayload.organization_id = newConversation.organization_id;
+    }
+
     const [inserted] = await this.knex('whatsapp_conversations')
-      .insert(newConversation)
+      .insert(insertPayload)
       .returning('*');
 
     return inserted;
   }
 
   async getConversationsByOrganization(organizationId: string, limit = 50, offset = 0): Promise<WhatsappConversation[]> {
-    return this.knex('whatsapp_conversations')
-      .where({ organization_id: organizationId, is_active: true })
+    return this.knex('whatsapp_conversations as c')
+      .join('whatsapp_accounts as a', 'a.id', 'c.account_id')
+      .where({ 'a.organization_id': organizationId, 'c.is_active': true })
+      .select('c.*')
       .orderBy('last_message_at', 'desc')
       .limit(limit)
       .offset(offset);
