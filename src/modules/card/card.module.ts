@@ -6,6 +6,7 @@ import { ListCardsUseCase } from '@/use-cases/card/listCards.useCase';
 import { GetCardByIdUseCase } from '@/use-cases/card/getCardById.useCase';
 import { UpdateCardUseCase } from '@/use-cases/card/updateCard.useCase';
 import { DeleteCardUseCase } from '@/use-cases/card/deleteCard.useCase';
+import { DuplicateCardUseCase } from '@/use-cases/card/duplicateCard.useCase';
 import { DatabaseModule } from '@/shared/database/database.module';
 
 @Module({
@@ -18,6 +19,7 @@ import { DatabaseModule } from '@/shared/database/database.module';
     GetCardByIdUseCase,
     UpdateCardUseCase,
     DeleteCardUseCase,
+    DuplicateCardUseCase,
   ],
 })
 export class CardModule {}

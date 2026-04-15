@@ -5,6 +5,7 @@ import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
 import { GetCardByIdUseCase } from '@/use-cases/card/getCardById.useCase';
 import { UpdateCardUseCase } from '@/use-cases/card/updateCard.useCase';
 import { DeleteCardUseCase } from '@/use-cases/card/deleteCard.useCase';
+import { DuplicateCardUseCase } from '@/use-cases/card/duplicateCard.useCase';
 
 @Controller('cards')
 export class CardController {
@@ -14,6 +15,7 @@ export class CardController {
     private getCardById: GetCardByIdUseCase,
     private updateCard: UpdateCardUseCase,
     private deleteCard: DeleteCardUseCase,
+    private duplicateCard: DuplicateCardUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -32,6 +34,12 @@ export class CardController {
   @Delete(':id')
   async delete(@Param('id') id: string, @Request() req: any) {
     return this.deleteCard.execute(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/duplicate')
+  async duplicate(@Param('id') id: string, @Request() req: any) {
+    return this.duplicateCard.execute(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard)

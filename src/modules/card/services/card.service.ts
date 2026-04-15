@@ -60,6 +60,51 @@ export class CardService {
     return card;
   }
 
+  private parseMetadata(metadata: unknown) {
+    if (!metadata) return {};
+
+    if (typeof metadata === 'string') {
+      try {
+        const parsed = JSON.parse(metadata);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    return typeof metadata === 'object' ? metadata : {};
+  }
+
+  async duplicateCard(id: string, user: any) {
+    const originalCard = await this.ensureCardAccess(id, user);
+    const [positionRow] = await this.knex('kanban_cards')
+      .where({ column_id: originalCard.column_id })
+      .max<{ max_position: number | string | null }[]>('position as max_position');
+
+    const nextPosition = Number(positionRow?.max_position ?? -1) + 1;
+    const metadata = {
+      ...this.parseMetadata(originalCard.metadata),
+      archived: false,
+    };
+
+    const [duplicatedCard] = await this.knex('kanban_cards')
+      .insert({
+        id: randomUUID(),
+        title: `${originalCard.title} (cópia)`,
+        description: originalCard.description || null,
+        column_id: originalCard.column_id,
+        position: nextPosition,
+        due_date: originalCard.due_date || null,
+        assigned_to: originalCard.assigned_to || null,
+        metadata: JSON.stringify(metadata),
+        created_at: new Date(),
+        updated_at: new Date(),
+      })
+      .returning('*');
+
+    return duplicatedCard;
+  }
+
   async getCardById(id: string, user: any) {
     return this.ensureCardAccess(id, user);
   }
