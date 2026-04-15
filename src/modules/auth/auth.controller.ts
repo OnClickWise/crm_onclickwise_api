@@ -1,4 +1,5 @@
-import { Controller, Post, Body, UseGuards, Req, Get, Put, Delete, Query } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get, Put, Delete, Query, Res } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import { LoginUseCase } from '@/use-cases/auth/login.useCase';
 import { RegisterUseCase } from '@/use-cases/auth/register.useCase';
 import { LoginDto } from './dtos/login.dto';
@@ -12,6 +13,7 @@ import { CreateEmployeeUseCase } from '@/use-cases/auth/create-employee.useCase'
 import { UpdateEmployeeUseCase } from '@/use-cases/auth/update-employee.useCase';
 import { DeleteEmployeeUseCase } from '@/use-cases/auth/delete-employee.useCase';
 import { OrganizationService } from '../organization/organization.service';
+import { clearAuthCookies, setAuthCookies } from './auth-cookie.util';
 
 @Controller('auth')
 export class AuthController {
@@ -29,8 +31,14 @@ export class AuthController {
   ) {}
 
   @Post('login')
-  async login(@Body() body: LoginDto) {
-    return this.loginUseCase.execute(body);
+  async login(@Body() body: LoginDto, @Res({ passthrough: true }) reply: FastifyReply) {
+    const result = await this.loginUseCase.execute(body);
+    setAuthCookies(reply, result.accessToken!, result.refreshToken!);
+    return {
+      success: true,
+      user: result.user,
+      organization: result.organization,
+    };
   }
 
   @Post('check-company-by-slug')
@@ -53,19 +61,30 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body: RegisterDto) {
-    return this.registerUseCase.execute(body);
+  async register(@Body() body: RegisterDto, @Res({ passthrough: true }) reply: FastifyReply) {
+    const result = await this.registerUseCase.execute(body);
+    setAuthCookies(reply, result.accessToken!, result.refreshToken!);
+    return {
+      success: true,
+      user: result.user,
+      organization: result.organization,
+    };
   }
 
   @Post('refresh')
-  refresh(@Body('refreshToken') token: string) {
-    return this.refreshUseCase.execute(token);
+  async refresh(@Req() req, @Body('refreshToken') token: string, @Res({ passthrough: true }) reply: FastifyReply) {
+    const refreshToken = token || req.cookies?.refreshToken;
+    const result = await this.refreshUseCase.execute(refreshToken);
+    setAuthCookies(reply, result.accessToken, result.refreshToken);
+    return { success: true };
   }
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
-  logout(@Req() req, @Body('refreshToken') refreshToken: string) {
-    return this.logoutUseCase.execute(req.user.userId, refreshToken);
+  async logout(@Req() req, @Body('refreshToken') refreshToken: string, @Res({ passthrough: true }) reply: FastifyReply) {
+    await this.logoutUseCase.execute(req.user.userId, refreshToken || req.cookies?.refreshToken);
+    clearAuthCookies(reply);
+    return { success: true };
   }
 
   @Get('employees')

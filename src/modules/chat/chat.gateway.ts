@@ -72,7 +72,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const rawToken =
         client.handshake.auth?.token ||
-        client.handshake.headers?.authorization?.toString()?.replace(/^Bearer\s+/i, '');
+        client.handshake.headers?.authorization?.toString()?.replace(/^Bearer\s+/i, '') ||
+        client.handshake.headers?.cookie
+          ?.split(';')
+          .map((part) => part.trim())
+          .find((part) => part.startsWith('accessToken='))
+          ?.split('=')[1];
 
       if (!rawToken) {
         throw new ForbiddenException('Token nao enviado');

@@ -37,6 +37,7 @@ export const {
   OPENAI_API_KEY,
  
   CALLS_BUCKET_NAME = 'calls-quality-jobhome',
+  COOKIE_DOMAIN = '',
 } = process.env;
 export const STORAGE_PROVIDER: string = process.env.STORAGE_PROVIDER || 'minio';
 

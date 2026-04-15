@@ -8,6 +8,7 @@ export const envSchema = z.object({
   // Compatibilidade: banco pode vir por DATABASE_URL ou por DB_* em config.ts.
   DATABASE_URL: z.string().optional().default(''),
   UPLOADS_DIR: z.string().optional().default('/tmp/uploads'), // Fallback para produção
+  COOKIE_DOMAIN: z.string().optional().default(''),
 });
 
 export const env = envSchema.parse(process.env);
