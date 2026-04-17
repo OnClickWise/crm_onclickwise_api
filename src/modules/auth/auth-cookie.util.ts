@@ -4,12 +4,13 @@ import { env } from '@/shared/config/env';
 
 const isProduction = env.NODE_ENV === 'production';
 const cookieDomain = env.COOKIE_DOMAIN || undefined;
+const sameSitePolicy = isProduction ? 'none' as const : 'lax' as const;
 
 const commonCookieOptions = {
   path: '/',
   domain: cookieDomain,
   secure: isProduction,
-  sameSite: 'lax' as const,
+  sameSite: sameSitePolicy,
 };
 
 function serializeCookie(
@@ -56,7 +57,7 @@ function clearCookieHeader(name: string) {
     path: '/',
     domain: cookieDomain,
     secure: isProduction,
-    sameSite: 'lax',
+    sameSite: sameSitePolicy,
     httpOnly: true,
     maxAge: 0,
   });

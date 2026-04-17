@@ -27,10 +27,8 @@ export class RefreshUseCase {
     );
 
     if (!storedToken) {
-      // possível roubo de token → invalida tudo
-      await this.refreshTokenRepository.deleteAllUserTokens(payload.userId);
-
-      throw new UnauthorizedException('Sessão comprometida');
+      // Evita derrubar todas as sessões em corridas de refresh concorrentes.
+      throw new UnauthorizedException('Refresh token inválido ou expirado');
     }
 
     // rotação — remove token antigo
