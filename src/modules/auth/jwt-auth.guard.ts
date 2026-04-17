@@ -4,9 +4,7 @@
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
-import * as jwt from 'jsonwebtoken';
 import { AuthPayload } from './entities/auth/auth.entity';
-import { JWT_SECRET } from '@/shared/config/config';
 import { TokenService } from './services/token.service';
 
 function readCookieValue(cookieHeader: string | undefined, name: string): string | null {
@@ -29,9 +27,12 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
 
     const authHeader = request.headers.authorization;
+    const bearerToken = typeof authHeader === 'string'
+      ? authHeader.replace(/^Bearer\s+/i, '').trim()
+      : null;
     const cookieToken = readCookieValue(request.headers.cookie, 'accessToken');
-    const token = authHeader?.startsWith('Bearer ')
-      ? authHeader.replace('Bearer ', '')
+    const token = (bearerToken && bearerToken !== 'null' && bearerToken !== 'undefined')
+      ? bearerToken
       : cookieToken;
 
     if (!token) throw new UnauthorizedException();
