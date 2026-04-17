@@ -49,6 +49,6 @@ import {
     ReactChatMessageUseCase,
     StartChatVideoCallUseCase,
   ],
-  exports: [ChatService],
+  exports: [ChatService, ChatGateway],
 })
 export class ChatModule {}

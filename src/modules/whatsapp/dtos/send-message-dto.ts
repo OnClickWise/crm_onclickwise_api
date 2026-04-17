@@ -1,12 +1,9 @@
-import { IsString, IsNotEmpty, IsUUID, IsOptional, Matches } from 'class-validator';
+import { IsString, IsNotEmpty, IsUUID, IsOptional } from 'class-validator';
 
 export class SendWhatsappMessageDto {
   @IsString()
   @IsNotEmpty()
-  // Aceita formatos como +5511999999999 ou whatsapp:+5511999999999
-  @Matches(/^(\+?|whatsapp:\+?)[1-9]\d{1,14}$/, { 
-    message: 'O número de destino deve estar no formato E.164 (ex: +55119...) ou prefixado com whatsapp:' 
-  })
+  // Removido o @Matches para permitir JIDs e números com sufixos de API
   to!: string;
 
   @IsString()
@@ -16,4 +13,10 @@ export class SendWhatsappMessageDto {
   @IsUUID()
   @IsOptional()
   leadId?: string;
+
+  @IsString()
+  @IsOptional()
+  contactName?: string; // Adicione esta linha
+
+  
 }
