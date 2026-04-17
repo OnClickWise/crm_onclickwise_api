@@ -95,4 +95,82 @@ export class BoardService {
     await this.ensureBoardAccess(id, user);
     return await this.knex('kanban_boards').where({ id }).delete();
   }
+
+  private normalizeMetadata(metadata: unknown): Record<string, any> {
+    if (!metadata) return {};
+
+    if (typeof metadata === 'string') {
+      try {
+        const parsed = JSON.parse(metadata);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+      } catch {
+        return {};
+      }
+    }
+
+    return typeof metadata === 'object' ? (metadata as Record<string, any>) : {};
+  }
+
+  async duplicateBoard(id: string, user: any) {
+    const originalBoard = await this.ensureBoardAccess(id, user);
+
+    return this.knex.transaction(async (trx) => {
+      const [duplicatedBoard] = await trx('kanban_boards')
+        .insert({
+          id: randomUUID(),
+          title: `${originalBoard.title} (cópia)`,
+          project_id: originalBoard.project_id,
+          color: originalBoard.color || 'ocean',
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning('*');
+
+      const originalLists = await trx('kanban_columns')
+        .where({ board_id: id })
+        .orderBy('position', 'asc');
+
+      const listIdMap = new Map<string, string>();
+
+      for (const list of originalLists) {
+        const nextListId = randomUUID();
+        listIdMap.set(list.id, nextListId);
+
+        await trx('kanban_columns').insert({
+          id: nextListId,
+          board_id: duplicatedBoard.id,
+          title: list.title,
+          position: list.position,
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+      }
+
+      const originalCards = await trx('kanban_cards as k')
+        .join('kanban_columns as c', 'c.id', 'k.column_id')
+        .where('c.board_id', id)
+        .select('k.*')
+        .orderBy('k.position', 'asc');
+
+      for (const card of originalCards) {
+        const targetColumnId = listIdMap.get(card.column_id);
+        if (!targetColumnId) continue;
+
+        await trx('kanban_cards').insert({
+          id: randomUUID(),
+          title: card.title,
+          description: card.description || null,
+          column_id: targetColumnId,
+          position: card.position ?? 0,
+          due_date: card.due_date || null,
+          assigned_to: card.assigned_to || null,
+          metadata: this.normalizeMetadata(card.metadata),
+          created_at: new Date(),
+          updated_at: new Date(),
+        });
+      }
+
+      return duplicatedBoard;
+    });
+  }
 }

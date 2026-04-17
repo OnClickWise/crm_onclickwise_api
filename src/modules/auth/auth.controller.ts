@@ -36,6 +36,8 @@ export class AuthController {
     setAuthCookies(reply, result.accessToken!, result.refreshToken!);
     return {
       success: true,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
       user: result.user,
       organization: result.organization,
     };
@@ -66,6 +68,8 @@ export class AuthController {
     setAuthCookies(reply, result.accessToken!, result.refreshToken!);
     return {
       success: true,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
       user: result.user,
       organization: result.organization,
     };
@@ -80,7 +84,11 @@ export class AuthController {
 
     const result = await this.refreshUseCase.execute(refreshToken);
     setAuthCookies(reply, result.accessToken, result.refreshToken);
-    return { success: true };
+    return {
+      success: true,
+      accessToken: result.accessToken,
+      refreshToken: result.refreshToken,
+    };
   }
 
   @Post('logout')

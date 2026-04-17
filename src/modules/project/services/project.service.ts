@@ -1,5 +1,5 @@
 
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException } from '@nestjs/common';
 import { Knex } from 'knex';
 import { randomUUID } from 'crypto';
 
@@ -8,6 +8,21 @@ export class ProjectService {
   constructor(
     @Inject('knex') private readonly knex: Knex
   ) {}
+
+  private async ensureProjectAccess(id: string | number, user: any) {
+    const project = await this.knex('projects as p')
+      .join('users as owner', 'owner.id', 'p.owner_id')
+      .where('p.id', String(id))
+      .andWhere('owner.organization_id', user.organizationId)
+      .select('p.*')
+      .first();
+
+    if (!project) {
+      throw new NotFoundException('Projeto não encontrado');
+    }
+
+    return project;
+  }
 
   /**
    * Busca um projeto por ID. 
@@ -72,13 +87,23 @@ export class ProjectService {
    * Atualiza um projeto existente
    */
   async updateProject(id: string | number, data: any, user: any) {
+    await this.ensureProjectAccess(id, user);
+
+    const payload: Record<string, any> = {
+      updated_at: new Date(),
+    };
+
+    if (typeof data.name === 'string') {
+      payload.name = data.name;
+    }
+
+    if (data.description !== undefined) {
+      payload.description = data.description;
+    }
+
     const [project] = await this.knex('projects')
-      .where({ id: String(id), owner_id: user.userId })
-      .update({
-        name: data.name,
-        description: data.description,
-        updated_at: new Date(),
-      })
+      .where({ id: String(id) })
+      .update(payload)
       .returning('*');
     return project;
   }
@@ -87,8 +112,10 @@ export class ProjectService {
    * Remove um projeto do sistema
    */
   async deleteProject(id: string | number, user: any) {
+    await this.ensureProjectAccess(id, user);
+
     return await this.knex('projects')
-      .where({ id: String(id), owner_id: user.userId })
+      .where({ id: String(id) })
       .delete();
   }
 }

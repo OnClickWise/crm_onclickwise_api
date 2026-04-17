@@ -20,7 +20,7 @@ export interface ILeadRepository {
   findByStatus(status: string, organizationId?: string): Promise<LeadEntity[]>;
   findByEmail(email: string, organizationId?: string): Promise<LeadEntity | null>;
   // Atualização
-  update(id: string, data: UpdateLeadDto, organizationId?: string): Promise<LeadEntity>;
+  update(id: string, data: UpdateLeadDto): Promise<LeadEntity>;
   
   // Operações em Massa (Pipeline)
   updateBulkPipeline(data: BulkUpdateLeadDto, organizationId?: string): Promise<void>;

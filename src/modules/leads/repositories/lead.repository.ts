@@ -116,17 +116,12 @@ export class LeadRepository implements ILeadRepository {
     };
   }
 
-  async update(id: string, data: any, organizationId?: string): Promise<LeadEntity> {
+  async update(id: string, data: any): Promise<LeadEntity> {
     const leadColumns = await this.getLeadColumns();
-    const currentLeadQuery = this.knex(this.tableName)
+    const currentLead = await this.knex(this.tableName)
       .select('organization_id')
-      .where({ id });
-
-    if (organizationId) {
-      currentLeadQuery.andWhere({ organization_id: organizationId });
-    }
-
-    const currentLead = await currentLeadQuery.first();
+      .where({ id })
+      .first();
 
     // Mapeia camelCase do DTO para snake_case do Banco
     const updateData: any = {
@@ -166,12 +161,10 @@ export class LeadRepository implements ILeadRepository {
       }
     }
 
-    const updateQuery = this.knex(this.tableName).where({ id });
-    if (organizationId) {
-      updateQuery.andWhere({ organization_id: organizationId });
-    }
-
-    const [updated] = await updateQuery.update(updateData).returning('*');
+    const [updated] = await this.knex(this.tableName)
+      .where({ id })
+      .update(updateData)
+      .returning('*');
     return updated;
   }
 

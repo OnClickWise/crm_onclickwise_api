@@ -9,14 +9,14 @@ export class UpdateLeadUseCase {
     private readonly leadRepository: ILeadRepository,
   ) {}
 
-  async execute(id: string, data: UpdateLeadDto, organizationId: string) {
-    const lead = await this.leadRepository.findById(id, organizationId);
+  async execute(id: string, data: UpdateLeadDto) {
+    const lead = await this.leadRepository.findById(id);
     if (!lead) throw new NotFoundException('Lead não encontrado');
 
     const updated = await this.leadRepository.update(id, {
       ...data,
       updatedAt: new Date(),
-    }, organizationId);
+    });
 
     return {
       success: true,

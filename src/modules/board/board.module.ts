@@ -7,6 +7,7 @@ import { ListBoardsUseCase } from '@/use-cases/board/list-boards.useCase';
 import { GetBoardByIdUseCase } from '@/use-cases/board/get-board-by-id.useCase';
 import { UpdateBoardUseCase } from '@/use-cases/board/update-board.useCase';
 import { DeleteBoardUseCase } from '@/use-cases/board/delete-board.useCase';
+import { DuplicateBoardUseCase } from '@/use-cases/board/duplicate-board.useCase';
 
 @Module({
   imports: [DatabaseModule],
@@ -18,6 +19,7 @@ import { DeleteBoardUseCase } from '@/use-cases/board/delete-board.useCase';
     GetBoardByIdUseCase,
     UpdateBoardUseCase,
     DeleteBoardUseCase,
+    DuplicateBoardUseCase,
   ],
   exports: [BoardService],
 })

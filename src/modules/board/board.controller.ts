@@ -5,6 +5,7 @@ import { ListBoardsUseCase } from '@/use-cases/board/list-boards.useCase';
 import { GetBoardByIdUseCase } from '@/use-cases/board/get-board-by-id.useCase';
 import { UpdateBoardUseCase } from '@/use-cases/board/update-board.useCase';
 import { DeleteBoardUseCase } from '@/use-cases/board/delete-board.useCase';
+import { DuplicateBoardUseCase } from '@/use-cases/board/duplicate-board.useCase';
 
 @Controller('boards')
 export class BoardController {
@@ -14,6 +15,7 @@ export class BoardController {
     private readonly getBoardByIdUseCase: GetBoardByIdUseCase,
     private readonly updateBoardUseCase: UpdateBoardUseCase,
     private readonly deleteBoardUseCase: DeleteBoardUseCase,
+    private readonly duplicateBoardUseCase: DuplicateBoardUseCase,
   ) {}
 
   @UseGuards(JwtAuthGuard)
@@ -32,6 +34,12 @@ export class BoardController {
   @Delete(':id')
   async delete(@Param('id') id: string, @Request() req: any) {
     return this.deleteBoardUseCase.execute(id, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/duplicate')
+  async duplicate(@Param('id') id: string, @Request() req: any) {
+    return this.duplicateBoardUseCase.execute(id, req.user);
   }
 
   @UseGuards(JwtAuthGuard)

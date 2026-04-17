@@ -9,7 +9,7 @@ const commonCookieOptions = {
   path: '/',
   domain: cookieDomain,
   secure: isProduction,
-  sameSite: 'strict' as const,
+  sameSite: 'lax' as const,
 };
 
 function serializeCookie(
@@ -56,7 +56,7 @@ function clearCookieHeader(name: string) {
     path: '/',
     domain: cookieDomain,
     secure: isProduction,
-    sameSite: 'strict',
+    sameSite: 'lax',
     httpOnly: true,
     maxAge: 0,
   });

@@ -10,21 +10,6 @@ import { env } from './shared/config/env';
 import contentParser from '@fastify/multipart';
 import { mkdir, access, constants } from 'fs/promises';
 import { existsSync } from 'fs';
-import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
-
-function readCookieValue(cookieHeader: string | undefined, name: string): string | null {
-  if (!cookieHeader) return null;
-
-  const cookies = cookieHeader.split(';');
-  for (const cookiePart of cookies) {
-    const [rawKey, ...rawValueParts] = cookiePart.trim().split('=');
-    if (rawKey === name) {
-      return rawValueParts.join('=') || null;
-    }
-  }
-
-  return null;
-}
 
 async function bootstrap() {
   const maxUploadMb = Number(process.env.MAX_UPLOAD_MB || 25);
@@ -73,8 +58,8 @@ async function bootstrap() {
     allowedHeaders: [
       'Content-Type',
       'Authorization',
-      'x-csrf-token',
       'x-tenant-id',
+      'x-csrf-token',
       'X-Requested-With',
       'Accept',
       'Range'
@@ -86,55 +71,19 @@ async function bootstrap() {
     app.addHook('onRequest', async (req, reply) => {
       reply.header(
         'Content-Security-Policy',
-        "default-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self' https://api.onclickwise.com.br https://onclickwise.com.br https://www.onclickwise.com.br; img-src 'self' data: blob:; media-src 'self' data: blob:; script-src 'self'; style-src 'self';"
+        "default-src 'self'; media-src 'self' data: blob: https://api.onclickwise.com.br https://onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
       );
     });
-  });
-
-  app.getHttpAdapter().getInstance().addHook('onRequest', async (req, reply) => {
-    const method = req.method.toUpperCase();
-    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-      return;
-    }
-
-    const pathname = (req.raw.url || '').split('?')[0];
-    const csrfExemptPaths = new Set([
-      '/api/auth/login',
-      '/api/auth/register',
-      '/api/auth/check-company-by-slug',
-      '/api/auth/forgot-password',
-      '/api/auth/reset-password',
-    ]);
-
-    if (csrfExemptPaths.has(pathname)) {
-      return;
-    }
-
-    const csrfCookie = readCookieValue(req.headers.cookie, 'csrfToken');
-    const csrfHeader = req.headers['x-csrf-token'];
-    const csrfToken = Array.isArray(csrfHeader) ? csrfHeader[0] : csrfHeader;
-
-    if (!csrfCookie || !csrfToken || csrfCookie !== csrfToken) {
-      await reply.status(403).send({
-        success: false,
-        statusCode: 403,
-        error: 'CSRF token inválido',
-      });
-      return;
-    }
   });
 
   app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({
-      transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
     }),
   );
-
-  app.useGlobalFilters(new GlobalExceptionFilter());
  
   await app.register(contentParser, {
     limits: {

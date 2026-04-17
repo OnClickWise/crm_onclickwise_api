@@ -77,32 +77,38 @@ export class CardService {
 
   async duplicateCard(id: string, user: any) {
     const originalCard = await this.ensureCardAccess(id, user);
-    const [positionRow] = await this.knex('kanban_cards')
-      .where({ column_id: originalCard.column_id })
-      .max<{ max_position: number | string | null }[]>('position as max_position');
+    try {
+      const [positionRow] = await this.knex('kanban_cards')
+        .where({ column_id: originalCard.column_id })
+        .max<{ max_position: number | string | null }[]>('position as max_position');
 
-    const nextPosition = Number(positionRow?.max_position ?? -1) + 1;
-    const metadata = {
-      ...this.parseMetadata(originalCard.metadata),
-      archived: false,
-    };
+      const nextPosition = Number(positionRow?.max_position ?? -1) + 1;
+      const metadata = {
+        ...this.parseMetadata(originalCard.metadata),
+        archived: false,
+      };
 
-    const [duplicatedCard] = await this.knex('kanban_cards')
-      .insert({
-        id: randomUUID(),
-        title: `${originalCard.title} (cópia)`,
-        description: originalCard.description || null,
-        column_id: originalCard.column_id,
-        position: nextPosition,
-        due_date: originalCard.due_date || null,
-        assigned_to: originalCard.assigned_to || null,
-        metadata: JSON.stringify(metadata),
-        created_at: new Date(),
-        updated_at: new Date(),
-      })
-      .returning('*');
+      const [duplicatedCard] = await this.knex('kanban_cards')
+        .insert({
+          id: randomUUID(),
+          title: `${originalCard.title} (cópia)`,
+          description: originalCard.description || null,
+          column_id: originalCard.column_id,
+          position: nextPosition,
+          due_date: originalCard.due_date || null,
+          assigned_to: originalCard.assigned_to || null,
+          metadata: JSON.stringify(metadata),
+          created_at: new Date(),
+          updated_at: new Date(),
+        })
+        .returning('*');
 
-    return duplicatedCard;
+      return duplicatedCard;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[CardService] duplicateCard failed', { id, columnId: originalCard.column_id, message });
+      throw error;
+    }
   }
 
   async getCardById(id: string, user: any) {
