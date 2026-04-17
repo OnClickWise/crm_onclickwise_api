@@ -3,76 +3,65 @@
 import { Injectable, NotFoundException, InternalServerErrorException } from '@nestjs/common';
 import { WhatsappRepository } from '@/modules/whatsapp/repositories/whatsapp.repository';
 import { SendWhatsappMessageDto } from '@/modules/whatsapp/dtos/send-message-dto';
-// Se o erro persistir, use: import twilio = require('twilio');
-import twilio from 'twilio'; 
+import axios from 'axios';
 
 @Injectable()
 export class SendWhatsappMessageUseCase {
   constructor(private readonly whatsappRepo: WhatsappRepository) {}
 
-  /**
-   * Executa o fluxo de envio de mensagem multi-tenant.
-   * 1. Busca as credenciais específicas da organização (Tenant).
-   * 2. Inicializa o cliente Twilio dinamicamente.
-   * 3. Garante a existência da conversa e do lead.
-   * 4. Registra a mensagem no banco de dados.
-   */
   async execute(organizationId: string, dto: SendWhatsappMessageDto) {
-    // 1. Busca as configurações da conta vinculada a esta organização
-    const account = await this.whatsappRepo.getAccountByOrganizationId(organizationId);
-    
-    if (!account) {
-      throw new NotFoundException('Nenhuma conta de WhatsApp configurada para esta organização.');
-    }
+    const account = await this.whatsappRepo.getEvolutionAccountByOrganizationId(organizationId);
+    if (!account) throw new NotFoundException('Conta não configurada.');
 
-    // 2. Formata os números no padrão E.164 exigido pela Twilio
-    const formattedTo = dto.to.startsWith('whatsapp:') ? dto.to : `whatsapp:${dto.to}`;
-    const formattedFrom = account.twilio_account_name.startsWith('whatsapp:') 
-      ? account.twilio_account_name 
-      : `whatsapp:${account.twilio_account_name}`;
+    const apiUrl = String(process.env.EVOLUTION_API_URL || '').replace(/\/+$/, '');
+    const apiKey = String(process.env.EVOLUTION_API_KEY || '').trim();
+    const formattedTo = dto.to.replace(/\D/g, ''); 
 
     try {
-      // 3. Inicializa o cliente Twilio com as credenciais do Tenant
-      const client = twilio(account.twilio_account_sid, account.twilio_auth_token);
+      // 4. Disparo para a Evolution API
+      const { data: evoRes } = await axios.post(
+        `${apiUrl}/message/sendText/${account.instance_name}`,
+        { number: formattedTo, text: dto.text, delay: 1200, linkPreview: true },
+        { headers: { 'apikey': apiKey, 'Content-Type': 'application/json' } }
+      );
 
-      // 4. Dispara a mensagem via API
-      const twilioRes = await client.messages.create({
-        body: dto.text,
-        from: formattedFrom,
-        to: formattedTo,
+      // --- O PULO DO GATO ESTÁ AQUI ---
+      
+      // 5.1 Garante que o CONTATO seja encontrado ou criado (Impede duplicidade)
+      const contact = await this.whatsappRepo.upsertEvolutionContact({
+        organization_id: organizationId,
+        wa_id: formattedTo, // Busca pelo número limpo
+        display_name: dto.contactName || formattedTo // Se tiver nome no DTO, usa ele
       });
 
-      // 5. Garante que a conversa existe (findOrCreate)
-      const conversation = await this.whatsappRepo.findOrCreateConversation({
+      // 5.2 Busca ou Cria a CONVERSA vinculada ao UUID do contato
+      const conversation = await this.whatsappRepo.findOrCreateEvolutionConversation({
         organization_id: organizationId,
         account_id: account.id,
-        whatsapp_username: formattedTo,
-        lead_id: dto.leadId
+        contact_id: contact.id, // VINCULO POR ID, NÃO POR NÚMERO
+        last_message_text: dto.text
       });
 
-      // 6. Persiste a mensagem no histórico
-      const savedMessage = await this.whatsappRepo.saveMessage({
-        whatsapp_conversation_id: conversation.id,
-        whatsapp_message_id: twilioRes.sid, // SID único da Twilio para rastreio posterior
+      // 6. Persiste a mensagem (O repository já faz o update do last_message)
+      const savedMessage = await this.whatsappRepo.saveEvolutionMessage({
+        conversation_id: conversation.id,
+        message_id: evoRes.key.id,
         direction: 'outgoing',
-        message_text: dto.text,
-        message_type: 'text',
+        content: dto.text,
         whatsapp_date: new Date(),
-        is_from_account: true,
-        is_delivered: false, // Será atualizado pelo Webhook de Status
-        message_metadata: {
-          twilio_status: twilioRes.status,
-          api_version: twilioRes.apiVersion
-        }
       });
 
-      return savedMessage;
+      return {
+        ...savedMessage,
+        conversation_id: conversation.id
+      };
 
     } catch (error) {
-      // Tratamento de erro específico para falhas na API da Twilio
-      console.error('Erro ao enviar mensagem via Twilio:', error);
+      const errorData = error.response?.data;
+      console.error('Erro no envio Evolution:', errorData || error.message);
+      
       throw new InternalServerErrorException(
-        `Falha na comunicação com o WhatsApp: ${error}`
+        `Erro ao enviar mensagem: ${errorData?.message || error.message}`
       );
     }
   }

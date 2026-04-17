@@ -3,9 +3,10 @@
 export interface WhatsappAccount {
   id: string;
   organization_id: string;
-  twilio_account_name: string;
-  twilio_account_sid: string;
-  twilio_auth_token: string;
+  twilio_account_name?: string;
+  twilio_account_sid?: string;
+  twilio_auth_token?: string;
+  instance_name?: string;
   is_authenticated?: boolean;
   authenticated_at?: Date | null;
   expires_at?: Date | null;
@@ -24,6 +25,7 @@ export interface WhatsappConversation {
   last_message_at?: Date | null;
   created_at?: Date;
   updated_at?: Date;
+  contact_name?: string | null;
 }
 
 export interface WhatsappMessage {

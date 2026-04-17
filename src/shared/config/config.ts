@@ -35,6 +35,8 @@ export const {
   RABBITMQ_URL = 'amqp://user:password@localhost:5672',
   QUEUE_PROVIDER = 'rabbitmq',
   OPENAI_API_KEY,
+  EVOLUTION_API_KEY, // ADICIONE ESTA
+  EVOLUTION_API_URL,
  
   CALLS_BUCKET_NAME = 'calls-quality-jobhome',
   COOKIE_DOMAIN = '',

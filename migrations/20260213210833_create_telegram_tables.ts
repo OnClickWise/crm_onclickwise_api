@@ -128,7 +128,8 @@ export async function up(knex: Knex): Promise<void> {
       table.text('caption'); // Legenda para mídias (texto pequeno)
       table.json('message_metadata'); // Metadados da mensagem (tamanho, duração, etc.)
       table.boolean('is_read').defaultTo(false);
-      table.boolean('is_read').defaultTo(false);
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+      //table.boolean('is_read').defaultTo(false);
       table.boolean('is_delivered').defaultTo(false);
       table.boolean('is_from_account').defaultTo(false);
       table.jsonb('read_by_users').defaultTo('[]'); // Array de IDs de usuários que leram a mensagem (como jsonb para suporte ao operador @>)

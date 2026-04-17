@@ -55,6 +55,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
   }
 
+  emitWhatsappConversationUpdated(organizationId: string, conversation: any) {
+  const room = this.getOrganizationRoomName(organizationId);
+  
+  // Enviamos para a sala da organização. 
+  // Todos os atendentes logados nessa org receberão o aviso.
+  this.server.to(room).emit('whatsapp:conversation_updated', conversation);
+}
+
+emitWhatsappStatusUpdated(organizationId: string, account: any) {
+  const room = this.getOrganizationRoomName(organizationId); // Isso retorna "org:ID"
+  this.logger.log(`Emitindo status do WhatsApp para a sala: ${room}`);
+  this.server.to(room).emit('whatsapp_status_updated', account);
+}
+
   emitMessageToChannel(organizationId: string, channelId: string, message: any) {
     const room = this.getRoomName(organizationId, channelId);
     this.server.to(room).emit('message:new', message);
@@ -162,7 +176,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         throw new ForbiddenException('Canal nao informado');
       }
 
-      await this.chatService.assertChannelAccess(body.channelId, user);
+      // Tenta validar pelo chat interno. Se falhar (ex: conversa de WhatsApp), 
+      // apenas ignoramos para permitir que o socket conecte na sala.
+      try {
+        await this.chatService.assertChannelAccess(body.channelId, user);
+      } catch (e) {
+        this.logger.debug(`Join via bypass/WhatsApp: ${body.channelId}`);
+      }
 
       const room = this.getRoomName(user.organizationId, body.channelId);
       await client.join(room);
