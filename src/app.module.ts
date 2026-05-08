@@ -21,6 +21,8 @@ import { InvestorModule } from './modules/investor/investor.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { UploadsModule } from './modules/uploads/uploads.module';
 import { LandingPagesModule } from './modules/landing-pages/landing-pages.module';
+import { AccountingModule } from './modules/accounting/accounting.module';
+import { FinanceModule } from './modules/finance/finance.module';
 
 @Module({
   imports: [
@@ -50,6 +52,8 @@ import { LandingPagesModule } from './modules/landing-pages/landing-pages.module
     ChatModule,
     UploadsModule,
     LandingPagesModule,
+    AccountingModule,
+    FinanceModule,
   ],
   controllers: [],
   providers: [],

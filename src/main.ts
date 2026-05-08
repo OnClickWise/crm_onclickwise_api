@@ -71,7 +71,7 @@ async function bootstrap() {
     app.addHook('onRequest', async (req, reply) => {
       reply.header(
         'Content-Security-Policy',
-        "default-src 'self'; media-src 'self' data: blob: https://api.onclickwise.com.br https://onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
+        "default-src 'self'; connect-src 'self' http://localhost:3001 http://localhost:8080 http://127.0.0.1:3001 http://127.0.0.1:8080 https://api.onclickwise.com.br https://onclickwise.com.br; media-src 'self' data: blob: https://api.onclickwise.com.br https://onclickwise.com.br; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;"
       );
     });
   });

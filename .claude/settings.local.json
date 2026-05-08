@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\vinio\\\\Desktop\\\\OnClickWise\\\\src\\\\app\\\\[locale]\\\\[org]\\\\finance\" -Recurse | Where-Object { $_.Extension -eq \".tsx\" } | Select-Object -ExpandProperty FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\vinio\\\\Desktop\\\\OnClickWise\" -Recurse -Filter \"*sidebar*\" -ErrorAction SilentlyContinue)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(dir /s \"C:\\\\Users\\\\vinio\\\\Desktop\\\\OnClickWise\\\\src\\\\app\")",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\vinio\\\\Desktop\\\\OnClickWise\\\\src\\\\app\\\\`[locale`]\" -Recurse | Where-Object {$_.PSIsContainer} | Select-Object -ExpandProperty FullName)",
+      "Read(//c/Users/vinio/Desktop/OnClickWise/src/app/**)",
+      "Bash(npx tsc *)",
+      "Read(//c/Users/vinio/Desktop/OnClickWise/src/services/**)",
+      "Read(//c/Users/vinio/Desktop/OnClickWise/**)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\components",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\erp\\contabilidade\\lancamentos",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\erp\\contabilidade\\livro-diario",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\erp\\contabilidade\\livro-razao",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\erp\\contabilidade\\balancete",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\services",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\finance\\dashboard",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\finance\\receivables",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\finance\\payables",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\finance",
+      "C:\\Users\\vinio\\Desktop\\OnClickWise\\src\\app\\[locale]\\[org]\\erp\\contabilidade"
+    ]
+  }
+}
