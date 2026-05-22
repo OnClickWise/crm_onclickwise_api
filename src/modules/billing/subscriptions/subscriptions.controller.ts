@@ -11,7 +11,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from '@/modules/auth/jwt-auth.guard';
-import { BillingSubscriptionsService, SubscriptionStatus } from './subscriptions.service';
+import { BillingSubscriptionsService } from './subscriptions.service';
+import type { SubscriptionStatus } from './subscriptions.service';
 import {
   CancelSubscriptionDto,
   ChangePlanDto,
