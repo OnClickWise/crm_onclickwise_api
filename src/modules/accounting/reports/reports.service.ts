@@ -531,4 +531,234 @@ export class ReportsService {
 
     return { revenue, expense };
   }
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // DFC — DEMONSTRAÇÃO DE FLUXO DE CAIXA (método direto)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  /**
+   * DFC pelo método direto. Analisa todos os lançamentos contábeis postados
+   * no período que tocam contas marcadas como `is_cash_equivalent`, e
+   * classifica o lado oposto pela `dfc_category` da conta (operating /
+   * investing / financing). Saldo inicial e final reconciliam com a soma
+   * de débitos − créditos nas contas de caixa.
+   */
+  async dfc(user: any, filters: { startDate: string; endDate: string }) {
+    const { organizationId, role } = this.getScope(user);
+    this.ensureRole(role);
+    this.validateDateRange(filters.startDate, filters.endDate);
+
+    // 1. Contas de caixa/equivalentes
+    const cashAccounts = await this.knex('accounting_chart_accounts')
+      .where({
+        organization_id: organizationId,
+        is_cash_equivalent: true,
+        is_active: true,
+        allows_posting: true,
+      })
+      .select<Array<{ id: string; code: string; name: string }>>('id', 'code', 'name');
+
+    if (cashAccounts.length === 0) {
+      return {
+        period: { from: filters.startDate, to: filters.endDate },
+        openingCash: 0,
+        closingCash: 0,
+        cashVariation: 0,
+        sections: {
+          operating: { inflows: 0, outflows: 0, net: 0, details: [] },
+          investing: { inflows: 0, outflows: 0, net: 0, details: [] },
+          financing: { inflows: 0, outflows: 0, net: 0, details: [] },
+        },
+        reconciliation: { computedClosing: 0, matches: true },
+        warning:
+          'Nenhuma conta marcada como "equivalente de caixa". Configure no plano de contas.',
+      };
+    }
+
+    const cashIds = cashAccounts.map((a) => a.id);
+
+    // Helper: saldo líquido (D − C) em contas de caixa até uma data
+    const cashBalanceUntil = async (untilDate: string, inclusive: boolean) => {
+      const op = inclusive ? '<=' : '<';
+      const row = await this.knex('accounting_journal_entry_lines as l')
+        .innerJoin('accounting_journal_entries as e', 'l.journal_entry_id', 'e.id')
+        .whereIn('l.account_id', cashIds)
+        .andWhere('l.organization_id', organizationId)
+        .andWhere('e.status', 'posted')
+        .andWhere('e.entry_date', op, untilDate)
+        .select(
+          this.knex.raw(
+            `COALESCE(SUM(CASE WHEN l.line_type = 'debit' THEN l.amount ELSE 0 END), 0) AS debit_sum`,
+          ),
+          this.knex.raw(
+            `COALESCE(SUM(CASE WHEN l.line_type = 'credit' THEN l.amount ELSE 0 END), 0) AS credit_sum`,
+          ),
+        )
+        .first<{ debit_sum: string | number; credit_sum: string | number }>();
+      return Number(row.debit_sum) - Number(row.credit_sum);
+    };
+
+    const openingCash = await cashBalanceUntil(filters.startDate, false);
+    const closingCash = await cashBalanceUntil(filters.endDate, true);
+
+    // 2. IDs dos journal_entries no período que tocam alguma conta de caixa
+    const entryIdsRows = await this.knex('accounting_journal_entry_lines as l')
+      .innerJoin('accounting_journal_entries as e', 'l.journal_entry_id', 'e.id')
+      .whereIn('l.account_id', cashIds)
+      .andWhere('l.organization_id', organizationId)
+      .andWhere('e.status', 'posted')
+      .andWhereBetween('e.entry_date', [filters.startDate, filters.endDate])
+      .distinct('e.id')
+      .select<Array<{ id: string }>>('e.id');
+
+    const entryIds = entryIdsRows.map((r) => r.id);
+    if (entryIds.length === 0) {
+      return {
+        period: { from: filters.startDate, to: filters.endDate },
+        openingCash,
+        closingCash,
+        cashVariation: closingCash - openingCash,
+        sections: {
+          operating: { inflows: 0, outflows: 0, net: 0, details: [] },
+          investing: { inflows: 0, outflows: 0, net: 0, details: [] },
+          financing: { inflows: 0, outflows: 0, net: 0, details: [] },
+        },
+        reconciliation: {
+          computedClosing: openingCash,
+          matches: Math.abs(closingCash - openingCash) < 0.01,
+        },
+      };
+    }
+
+    // 3. Carrega todas as linhas NÃO-caixa desses lançamentos + suas contas
+    const lines = await this.knex('accounting_journal_entry_lines as l')
+      .innerJoin('accounting_chart_accounts as a', 'l.account_id', 'a.id')
+      .whereIn('l.journal_entry_id', entryIds)
+      .whereNotIn('l.account_id', cashIds)
+      .andWhere('l.organization_id', organizationId)
+      .select<
+        Array<{
+          account_id: string;
+          code: string;
+          name: string;
+          account_type: string;
+          dfc_category: string | null;
+          line_type: 'debit' | 'credit';
+          amount: string | number;
+        }>
+      >(
+        'l.account_id',
+        { code: 'a.code' },
+        { name: 'a.name' },
+        { account_type: 'a.account_type' },
+        { dfc_category: 'a.dfc_category' },
+        'l.line_type',
+        'l.amount',
+      );
+
+    // 4. Categoriza cada linha + acumula
+    interface BucketDetail {
+      accountId: string;
+      code: string;
+      name: string;
+      inflow: number;
+      outflow: number;
+    }
+    const buckets: Record<'operating' | 'investing' | 'financing', Map<string, BucketDetail>> = {
+      operating: new Map(),
+      investing: new Map(),
+      financing: new Map(),
+    };
+    const totals = {
+      operating: { inflows: 0, outflows: 0 },
+      investing: { inflows: 0, outflows: 0 },
+      financing: { inflows: 0, outflows: 0 },
+    };
+
+    for (const line of lines) {
+      const cat = this.inferDfcCategory(line.dfc_category, line.account_type, line.name);
+      // contribuição ao caixa atribuível a esta linha:
+      // credit (linha credita o contra-pé) → caixa foi debitado → entrada (+)
+      // debit (linha debita o contra-pé) → caixa foi creditado → saída (−)
+      const amount = Number(line.amount);
+      const cashImpact = line.line_type === 'credit' ? amount : -amount;
+
+      const bucket = buckets[cat];
+      let detail = bucket.get(line.account_id);
+      if (!detail) {
+        detail = {
+          accountId: line.account_id,
+          code: line.code,
+          name: line.name,
+          inflow: 0,
+          outflow: 0,
+        };
+        bucket.set(line.account_id, detail);
+      }
+      if (cashImpact >= 0) {
+        detail.inflow += cashImpact;
+        totals[cat].inflows += cashImpact;
+      } else {
+        detail.outflow += Math.abs(cashImpact);
+        totals[cat].outflows += Math.abs(cashImpact);
+      }
+    }
+
+    const round2 = (n: number) => Math.round(n * 100) / 100;
+    const buildSection = (key: 'operating' | 'investing' | 'financing') => {
+      const details = Array.from(buckets[key].values())
+        .map((d) => ({
+          ...d,
+          inflow: round2(d.inflow),
+          outflow: round2(d.outflow),
+          net: round2(d.inflow - d.outflow),
+        }))
+        .sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+      const inflows = round2(totals[key].inflows);
+      const outflows = round2(totals[key].outflows);
+      return {
+        inflows,
+        outflows,
+        net: round2(inflows - outflows),
+        details,
+      };
+    };
+
+    const operating = buildSection('operating');
+    const investing = buildSection('investing');
+    const financing = buildSection('financing');
+    const totalNet = round2(operating.net + investing.net + financing.net);
+    const computedClosing = round2(openingCash + totalNet);
+    const matches = Math.abs(computedClosing - closingCash) < 0.01;
+
+    return {
+      period: { from: filters.startDate, to: filters.endDate },
+      openingCash: round2(openingCash),
+      closingCash: round2(closingCash),
+      cashVariation: round2(closingCash - openingCash),
+      sections: { operating, investing, financing },
+      reconciliation: { computedClosing, matches },
+    };
+  }
+
+  /** Default DFC category quando a conta não tem `dfc_category` setado. */
+  private inferDfcCategory(
+    explicit: string | null,
+    accountType: string,
+    name: string,
+  ): 'operating' | 'investing' | 'financing' {
+    if (explicit === 'operating' || explicit === 'investing' || explicit === 'financing')
+      return explicit;
+    const lname = name.toLowerCase();
+    if (/(imobilizad|ativo fixo|equipament|veículo|veiculo|máquinas|maquinas|investiment)/i.test(lname))
+      return 'investing';
+    if (accountType === 'equity') return 'financing';
+    if (
+      accountType === 'liability' &&
+      /(empréstim|emprestim|financiament|loan|debêntur|debentur)/i.test(lname)
+    )
+      return 'financing';
+    // Default: operacional (receita, despesa, AR, AP, impostos, estoque…)
+    return 'operating';
+  }
 }

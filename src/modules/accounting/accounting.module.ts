@@ -5,6 +5,8 @@ import { ReportsModule } from './reports/reports.module';
 import { SeedModule } from './seed/seed.module';
 import { JournalsModule } from './journals/journals.module';
 import { ExportsModule } from './exports/exports.module';
+import { AutoJournalModule } from './auto-journal/auto-journal.module';
+import { FiscalYearModule } from './fiscal-year/fiscal-year.module';
 
 @Module({
   imports: [
@@ -14,6 +16,8 @@ import { ExportsModule } from './exports/exports.module';
     SeedModule,
     JournalsModule,
     ExportsModule,
+    AutoJournalModule,
+    FiscalYearModule,
   ],
   exports: [
     JournalEntriesModule,
@@ -21,6 +25,8 @@ import { ExportsModule } from './exports/exports.module';
     ReportsModule,
     JournalsModule,
     ExportsModule,
+    AutoJournalModule,
+    FiscalYearModule,
   ],
 })
 export class AccountingModule {}

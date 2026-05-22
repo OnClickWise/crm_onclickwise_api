@@ -15,6 +15,7 @@ import {
   UpdatePayableDto,
 } from '../dtos/create-payable.dto';
 import { randomUUID } from 'crypto';
+import { AutoJournalService } from '@/modules/accounting/auto-journal/auto-journal.service';
 
 @Injectable()
 export class AccountsPayableService {
@@ -23,6 +24,7 @@ export class AccountsPayableService {
   constructor(
     @Inject('knex') private readonly knex: Knex,
     private readonly payableRepository: PayableRepository,
+    private readonly autoJournal: AutoJournalService,
   ) {}
 
   private getScope(user: any): { organizationId: string; userId: string; role: string } {
@@ -101,12 +103,20 @@ export class AccountsPayableService {
     return this.knex.transaction(async (trx) => {
       const payment = await this.payableRepository.recordPayment(id, organizationId, dto.amount, dto, userId);
 
-      // Auto-generate accounting entry (Debit: Supplier, Credit: Bank/Cash)
-      try {
-        await this.generatePaymentAccountingEntry(trx, payable, Number(dto.amount), userId, organizationId);
-      } catch (error) {
-        this.logger.warn(`Failed to auto-generate payment accounting entry: ${error.message}`);
-      }
+      // Lançamento contábil automático via motor configurável (purchase_payment)
+      await this.autoJournal.generate(
+        {
+          organizationId,
+          userId,
+          eventType: 'purchase_payment',
+          referenceType: 'payable_payment',
+          referenceId: payment?.id ?? `${id}:${Date.now()}`,
+          description: `Pagamento a ${payable.supplier_name}`,
+          entryDate: new Date(),
+          amounts: { payment_amount: Number(dto.amount) },
+        },
+        trx,
+      );
 
       return payment;
     });
@@ -167,72 +177,6 @@ export class AccountsPayableService {
       account_id: supplierAccount.id,
       line_type: 'credit',
       amount: (Number(payable.original_amount) * 100) / 100,
-      created_by: userId,
-      created_at: now,
-    });
-  }
-
-  private async generatePaymentAccountingEntry(
-    trx: Knex.Transaction,
-    payable: any,
-    amount: number,
-    userId: string,
-    organizationId: string,
-  ) {
-    const supplierAccount = await trx('accounting_chart_accounts')
-      .where({ organization_id: organizationId, account_type: 'liability' })
-      .andWhere('name', 'ilike', '%payable%')
-      .first();
-
-    const bankAccount = await trx('accounting_chart_accounts')
-      .where({ organization_id: organizationId, account_type: 'asset' })
-      .andWhere('name', 'ilike', '%bank%')
-      .first();
-
-    if (!supplierAccount || !bankAccount) {
-      this.logger.warn('Default accounting accounts not found for payment entry');
-      return;
-    }
-
-    const entryId = randomUUID();
-    const now = new Date();
-
-    await trx('accounting_journal_entries').insert({
-      id: entryId,
-      organization_id: organizationId,
-      status: 'posted',
-      entry_date: now,
-      description: `Payment to ${payable.supplier_name}`,
-      reference_type: 'payable_payment',
-      reference_id: payable.id,
-      created_by: userId,
-      updated_by: userId,
-      posted_by: userId,
-      posted_at: now,
-      created_at: now,
-      updated_at: now,
-    });
-
-    // Debit: Supplier account
-    await trx('accounting_journal_entry_lines').insert({
-      id: randomUUID(),
-      journal_entry_id: entryId,
-      organization_id: organizationId,
-      account_id: supplierAccount.id,
-      line_type: 'debit',
-      amount: (amount * 100) / 100,
-      created_by: userId,
-      created_at: now,
-    });
-
-    // Credit: Bank/Cash account
-    await trx('accounting_journal_entry_lines').insert({
-      id: randomUUID(),
-      journal_entry_id: entryId,
-      organization_id: organizationId,
-      account_id: bankAccount.id,
-      line_type: 'credit',
-      amount: (amount * 100) / 100,
       created_by: userId,
       created_at: now,
     });

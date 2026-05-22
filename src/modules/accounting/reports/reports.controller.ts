@@ -70,4 +70,14 @@ export class ReportsController {
   balanco(@Req() req: any, @Query('referenceDate') referenceDate: string) {
     return this.reportsService.balanco(req.user, { referenceDate });
   }
+
+  /** DFC — Demonstração de Fluxo de Caixa (método direto). */
+  @Get('dfc')
+  dfc(
+    @Req() req: any,
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.reportsService.dfc(req.user, { startDate, endDate });
+  }
 }

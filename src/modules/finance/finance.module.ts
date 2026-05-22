@@ -10,6 +10,10 @@ import { FinanceConfigModule } from './finance-config/finance-config.module';
 import { ExchangeRatesModule } from './exchange-rates/exchange-rates.module';
 import { AllocationsModule } from './allocations/allocations.module';
 import { BankReconciliationModule } from './bank-reconciliation/bank-reconciliation.module';
+import { CostCentersModule } from './cost-centers/cost-centers.module';
+import { CashFlowModule } from './cash-flow/cash-flow.module';
+import { BankImportModule } from './bank-import/bank-import.module';
+import { DunningModule } from './dunning/dunning.module';
 
 @Module({
   imports: [
@@ -24,6 +28,10 @@ import { BankReconciliationModule } from './bank-reconciliation/bank-reconciliat
     ExchangeRatesModule,
     AllocationsModule,
     BankReconciliationModule,
+    CostCentersModule,
+    CashFlowModule,
+    BankImportModule,
+    DunningModule,
   ],
   exports: [
     AccountsPayableModule,
@@ -36,6 +44,10 @@ import { BankReconciliationModule } from './bank-reconciliation/bank-reconciliat
     ExchangeRatesModule,
     AllocationsModule,
     BankReconciliationModule,
+    CostCentersModule,
+    CashFlowModule,
+    BankImportModule,
+    DunningModule,
   ],
 })
 export class FinanceModule {}

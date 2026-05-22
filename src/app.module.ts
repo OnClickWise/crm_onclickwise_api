@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './modules/auth/auth.module'; // ← importar
@@ -23,6 +24,16 @@ import { UploadsModule } from './modules/uploads/uploads.module';
 import { LandingPagesModule } from './modules/landing-pages/landing-pages.module';
 import { AccountingModule } from './modules/accounting/accounting.module';
 import { FinanceModule } from './modules/finance/finance.module';
+import { ProspectingModule } from './modules/prospecting/prospecting.module';
+import { SalesModule } from './modules/sales/sales.module';
+import { InventoryModule } from './modules/inventory/inventory.module';
+import { TaxValidationModule } from './shared/tax-validation/tax-validation.module';
+import { CommunicationsModule } from './modules/communications/communications.module';
+import { ApprovalsModule } from './modules/approvals/approvals.module';
+import { PurchasesModule } from './modules/purchases/purchases.module';
+import { AuditModule } from './modules/audit/audit.module';
+import { AuditInterceptor } from './modules/audit/audit.interceptor';
+import { ComplianceModule } from './modules/compliance/compliance.module';
 
 @Module({
   imports: [
@@ -54,8 +65,20 @@ import { FinanceModule } from './modules/finance/finance.module';
     LandingPagesModule,
     AccountingModule,
     FinanceModule,
+    ProspectingModule,
+    SalesModule,
+    InventoryModule,
+    TaxValidationModule,
+    CommunicationsModule,
+    ApprovalsModule,
+    PurchasesModule,
+    AuditModule,
+    ComplianceModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    // Interceptor global de auditoria — registra toda requisição mutante.
+    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+  ],
 })
 export class AppModule {}

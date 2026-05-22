@@ -10,6 +10,7 @@ import { Knex } from 'knex';
 import { randomUUID } from 'crypto';
 import { CreateCustomerDto } from './dtos/create-customer.dto';
 import { UpdateCustomerDto } from './dtos/update-customer.dto';
+import { TaxIdValidator } from '@/shared/tax-validation/tax-id.validator';
 
 interface AuthScope {
   organizationId: string;
@@ -56,7 +57,27 @@ export interface CustomerRow {
 
 @Injectable()
 export class CustomersService {
-  constructor(@Inject('knex') private readonly knex: Knex) {}
+  constructor(
+    @Inject('knex') private readonly knex: Knex,
+    private readonly taxValidator: TaxIdValidator,
+  ) {}
+
+  /**
+   * Valida tax_id contra o algoritmo do tipo (CNPJ, CPF, NIF, NIE, CIF, RFC).
+   * Retorna null se tipo não suportado. Lança BadRequestException se inválido.
+   * Não bloqueia salvar — apenas marca `tax_id_valid` no banco.
+   */
+  private validateTaxId(
+    taxIdType: string | null | undefined,
+    taxId: string | null | undefined,
+  ): { valid: boolean | null; normalized?: string } {
+    if (!taxId || !taxIdType) return { valid: null };
+    const r = this.taxValidator.validate(taxIdType, taxId);
+    if (r.valid === false) {
+      throw new BadRequestException(`Documento fiscal inválido: ${r.reason}`);
+    }
+    return { valid: r.valid, normalized: r.normalized };
+  }
 
   private getScope(user: AuthUserPayload | undefined): AuthScope {
     if (!user?.organizationId || !user?.userId) {
@@ -117,6 +138,9 @@ export class CustomersService {
     const { organizationId, userId, role } = this.getScope(user);
     this.ensureWriteRole(role);
 
+    // Validação algorítmica do tax_id (lança erro se inválido)
+    const taxCheck = this.validateTaxId(dto.taxIdType, dto.taxId);
+
     return this.knex.transaction(async (trx) => {
       // Validações de unicidade — mensagens amigáveis em vez de erro 500 do Postgres.
       if (dto.code) {
@@ -138,6 +162,8 @@ export class CustomersService {
         id,
         organization_id: organizationId,
         ...this.dtoToRow(dto),
+        tax_id_valid: taxCheck.valid,
+        tax_id_validated_at: taxCheck.valid != null ? now : null,
         is_active: dto.isActive ?? true,
         payment_terms_days: dto.paymentTermsDays ?? 0,
         created_by: userId,
@@ -197,6 +223,12 @@ export class CustomersService {
     const { organizationId, userId, role } = this.getScope(user);
     this.ensureWriteRole(role);
 
+    // Valida tax_id se o usuário está mudando tipo ou número
+    const taxCheck =
+      dto.taxIdType !== undefined || dto.taxId !== undefined
+        ? this.validateTaxId(dto.taxIdType, dto.taxId)
+        : { valid: undefined as boolean | null | undefined };
+
     return this.knex.transaction(async (trx) => {
       const current = await trx<CustomerRow>('customers')
         .where({ id, organization_id: organizationId })
@@ -222,6 +254,10 @@ export class CustomersService {
         .where({ id, organization_id: organizationId })
         .update({
           ...this.dtoToRow(dto),
+          ...(taxCheck.valid !== undefined && {
+            tax_id_valid: taxCheck.valid,
+            tax_id_validated_at: taxCheck.valid != null ? new Date() : null,
+          }),
           updated_by: userId,
           updated_at: new Date(),
         });
