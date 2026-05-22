@@ -111,4 +111,5 @@ export class CancelSubscriptionDto {
 }
 
 // Re-export for convenience
-export { BILLING_CYCLES, BillingCycle };
+export { BILLING_CYCLES };
+export type { BillingCycle };

@@ -34,6 +34,7 @@ import { PurchasesModule } from './modules/purchases/purchases.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuditInterceptor } from './modules/audit/audit.interceptor';
 import { ComplianceModule } from './modules/compliance/compliance.module';
+import { BillingModule } from './modules/billing/billing.module';
 
 @Module({
   imports: [
@@ -74,6 +75,7 @@ import { ComplianceModule } from './modules/compliance/compliance.module';
     PurchasesModule,
     AuditModule,
     ComplianceModule,
+    BillingModule,
   ],
   controllers: [],
   providers: [
